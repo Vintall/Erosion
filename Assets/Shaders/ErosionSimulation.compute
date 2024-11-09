@@ -1,0 +1,107 @@
+// DropByDropErosion.compute
+#pragma kernel CSMain
+
+// Terrain height map
+RWTexture2D<float> heightMap;
+
+// Droplet properties
+int numDroplets = 1000; // Number of droplets per simulation step
+float inertia = 0.05;   // Droplet inertia
+float sedimentCapacityFactor = 4.0; // Determines how much sediment a droplet can carry
+float minSedimentCapacity = 0.01; // Minimum sediment capacity
+float erosionRate = 0.3; // Rate of erosion per step
+float depositionRate = 0.1; // Rate of sediment deposition
+float evaporationRate = 0.02; // Rate of droplet evaporation
+float gravity = 4.0;   // Controls droplet movement
+
+struct Droplet
+{
+    float2 position;
+    float2 direction;
+    float speed;
+    float water;
+    float sediment;
+};
+
+// Random number generation function (placeholder)
+float rand()
+{
+    // Implement a random number generator suitable for this application
+    return frac(sin(dot(float2(12.9898, 78.233), float2(1.0, 1.0))) * 43758.5453);
+}
+
+// Helper function to compute gradient at a given position
+float2 ComputeGradient(float2 pos)
+{
+    float heightL = heightMap[int2(pos + float2(-1, 0))];
+    float heightR = heightMap[int2(pos + float2(1, 0))];
+    float heightD = heightMap[int2(pos + float2(0, -1))];
+    float heightU = heightMap[int2(pos + float2(0, 1))];
+
+    return float2(heightR - heightL, heightU - heightD) * 0.5;
+}
+
+
+
+
+// Random seed for droplet initialization
+RWStructuredBuffer<Droplet> droplets;
+
+[numthreads(1, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    for (int i = 0; i < numDroplets; i++)
+    {
+        // Initialize droplet at random position
+        Droplet droplet;
+        droplet.position = float2(rand(), rand());
+        droplet.direction = float2(0, 0);
+        droplet.speed = 1.0;
+        droplet.water = 1.0;
+        droplet.sediment = 0.0;
+
+        while (droplet.water > 0.01 && droplet.speed > 0.01)
+        {
+            // Get height and gradient at current position
+            float height = heightMap[int2(droplet.position)];
+            float2 gradient = ComputeGradient(droplet.position);
+            float slope = length(gradient);
+
+            // Update droplet's direction and position
+            droplet.direction = droplet.direction * inertia - gradient * (1.0 - inertia);
+            droplet.direction = normalize(droplet.direction);
+            float2 newPosition = droplet.position + droplet.direction * droplet.speed;
+
+            // Out-of-bounds check
+            if (newPosition.x < 0 || newPosition.y < 0 || newPosition.x > 256 || newPosition.y > 256)
+                break;
+
+            float newHeight = heightMap[int2(newPosition)];
+            float deltaHeight = height - newHeight;
+
+            // Erode or deposit based on slope
+            float sedimentCapacity = max(-deltaHeight * droplet.speed * droplet.water * sedimentCapacityFactor, minSedimentCapacity);
+
+            if (droplet.sediment > sedimentCapacity || deltaHeight < 0)
+            {
+                // Deposit sediment
+                float amountToDeposit = min(droplet.sediment, deltaHeight < 0 ? -deltaHeight : (droplet.sediment - sedimentCapacity) * depositionRate);
+                droplet.sediment -= amountToDeposit;
+                heightMap[int2(droplet.position)] += amountToDeposit;
+            }
+            else
+            {
+                // Erode sediment
+                float amountToErode = min((sedimentCapacity - droplet.sediment) * erosionRate, deltaHeight);
+                droplet.sediment += amountToErode;
+                heightMap[int2(droplet.position)] -= amountToErode;
+            }
+
+            // Update droplet's position, speed, and water level
+            droplet.position = newPosition;
+            droplet.speed = sqrt(droplet.speed * droplet.speed + deltaHeight * gravity);
+            droplet.water *= (1.0 - evaporationRate);
+        }
+    }
+}
+
