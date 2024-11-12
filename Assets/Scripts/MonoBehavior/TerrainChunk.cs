@@ -18,7 +18,7 @@ namespace MonoBehavior
         public MeshFilter MeshFilter => meshFilter;
         public MeshRenderer MeshRenderer => meshRenderer;
 
-        public MeshDataVo MeshDataVo { get; set; }
+        public MeshDataVo MeshData { get; set; }
         
         private void OnDrawGizmos()
         {

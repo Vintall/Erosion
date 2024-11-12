@@ -4,10 +4,7 @@ namespace Services.GausianBlur.Impls
 {
     public class GaussianBlurService : IGaussianBlurService
     {
-        public GaussianBlurService()
-        {
-            
-        }
+        public GaussianBlurService() { }
 
         public void ApplyGaussianBlur(ref Vector3[][] heightMap, int resolution)
         {

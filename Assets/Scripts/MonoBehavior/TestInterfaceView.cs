@@ -8,12 +8,13 @@ namespace MonoBehavior
 {
     public class TestInterfaceView : MonoBehaviour
     {
-        public Action OnGeneratePress;
+        public Action OnSimulateButtonPress;
+        public Action OnResetButtonPress;
         [SerializeField] private HydraulicErosionIterationVo hydraulicErosionIterationVo;
-
-        public HydraulicErosionIterationVo HydraulicErosionIterationVo => hydraulicErosionIterationVo;
+        [SerializeField] private int iterations;
         
-        public void Generate() => OnGeneratePress?.Invoke();
+        public HydraulicErosionIterationVo HydraulicErosionIterationVo => hydraulicErosionIterationVo;
+        public int Iteration => iterations;
     }
 
     [CustomEditor(typeof(TestInterfaceView))]
@@ -31,8 +32,11 @@ namespace MonoBehavior
         {
             base.OnInspectorGUI();
             
-            if(GUILayout.Button("Generate"))
-                _target.Generate();
+            if(GUILayout.Button($"Reset terrain chunk"))
+                _target.OnResetButtonPress?.Invoke();
+            
+            if(GUILayout.Button($"Simulate {_target.Iteration} iterations"))
+                _target.OnSimulateButtonPress?.Invoke();
         }
     }
 }

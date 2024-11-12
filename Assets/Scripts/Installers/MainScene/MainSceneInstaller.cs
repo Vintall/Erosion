@@ -27,6 +27,7 @@ namespace Installers.MainScene
             BindService<GPUHydraulicErosionService>();
             BindService<TestInterfaceController>();
             BindService<TerrainChunkGeneratorService>();
+            BindService<ErosionCellSimulator>();
         }
 
         private void BindService<T>()

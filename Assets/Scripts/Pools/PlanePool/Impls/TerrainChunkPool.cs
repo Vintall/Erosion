@@ -23,7 +23,7 @@ namespace Pools.PlanePool.Impls
         protected override void OnCreated(TerrainChunk item)
         {
             base.OnCreated(item);
-            
+
             item.gameObject.SetActive(false);
         }
     }

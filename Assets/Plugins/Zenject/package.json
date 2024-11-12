@@ -1,24 +1,8 @@
+  
 {
-  "name": "com.realis.zenject",
-  "displayName": "Zenject",
-  "description": "Zenject is a lightweight highly performant dependency injection framework built specifically to target Unity 3D (however it can be used outside of Unity as well).",
-  "version": "9.2.0",
-  "unity": "2017.1",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/RealisNetwork/zenjectrealis.git"
-  },
-  "author": {
-    "name": "realis",
-    "email": "",
-    "url": ""
-  },
-  "dependencies": {
-    "com.realis.unirx": "https://github.com/RealisNetwork/unirxrealis.git#upm"
-  },
-  "keywords": [
-    "zenject",
-    "di"
-  ]
+	"name": "com.mathijsbakker.extenject",
+	"displayName": "Extenject",
+	"version": "9.2.0",
+	"description": "Dependency Injection Framework for Unity3D",
+	"unity": "2019.3" 
 }

@@ -23,22 +23,43 @@ namespace Services.GPUHydraulicErosionService.Impls
 
         public void SimulateErosionIteration(
             HydraulicErosionIterationVo iterationData,
-            Texture heightMap,
-            Texture waterMap)
+            MeshDataVo meshDataVo)
         {
             var erosionShader = _commonShadersDatabase.HydraulicErosionComputeShader;
             var kernel = erosionShader.FindKernel("CSMain");
+            var consecutiveVerticesFloat = new float[meshDataVo.Resolution * meshDataVo.Resolution];
 
-            erosionShader.SetTexture(kernel, HeightMapPropertyId, heightMap);
-            erosionShader.SetTexture(kernel, WaterMapPropertyId, waterMap);
+            for(var i = 0;i<meshDataVo.Resolution;++i)
+            for (var j = 0; j < meshDataVo.Resolution; ++j)
+            {
+                consecutiveVerticesFloat[i * meshDataVo.Resolution + j] = meshDataVo.Vertices[i][j].y;
+            }
+            
+            ComputeBuffer heightBuffer = new ComputeBuffer(consecutiveVerticesFloat.Length, sizeof(float));
+            heightBuffer.SetData(consecutiveVerticesFloat);
+            erosionShader.SetBuffer(0, "heightMap", heightBuffer);
 
-            erosionShader.SetFloat(DeltaTimePropertyId, iterationData.DeltaTime);
-            erosionShader.SetFloat(ErosionRatePropertyId, iterationData.ErosionRate);
-            erosionShader.SetFloat(DepositionRatePropertyId, iterationData.DepositionRate);
-            erosionShader.SetFloat(EvaporationRatePropertyId, iterationData.EvaporationRate);
-            erosionShader.SetFloat(MinSlopePropertyId, iterationData.MinSlope);
+            ComputeBuffer waterBuffer = new ComputeBuffer(consecutiveVerticesFloat.Length, sizeof(float));
+            waterBuffer.SetData(consecutiveVerticesFloat);
+            erosionShader.SetBuffer(0, "waterMap", waterBuffer);
 
-            erosionShader.Dispatch(kernel, heightMap.width / 8, heightMap.width / 8, 1);
+            erosionShader.SetInt("mapWidth", meshDataVo.Resolution);
+            erosionShader.SetInt("mapHeight", meshDataVo.Resolution);
+            
+            erosionShader.Dispatch(kernel, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
+            
+            heightBuffer.GetData(consecutiveVerticesFloat);
+
+            for (var i = 0; i < meshDataVo.Resolution; ++i)
+            for (int j = 0; j < meshDataVo.Resolution; ++j)
+            {
+                meshDataVo.Vertices[i][j] = new Vector3(
+                    meshDataVo.Vertices[i][j].x, 
+                    consecutiveVerticesFloat[i * meshDataVo.Resolution + j], 
+                    meshDataVo.Vertices[i][j].z);
+            }
+                
+            //meshDataVo.Vertices = consecutiveVerticesVec.ConvertToMatrixArray(consecutiveVerticesVec.Length);
         }
     }
 }

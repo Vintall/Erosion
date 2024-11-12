@@ -5,6 +5,6 @@ namespace Services.MeshDataGeneratorService
 {
     public interface IMeshDataGeneratorService
     {
-        MeshDataVo GenerateMesh(int resolution, float size);
+        MeshDataVo GenerateMeshData(int resolution, float size);
     }
 }

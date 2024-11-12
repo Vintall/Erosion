@@ -18,7 +18,7 @@ namespace Installers.MainScene
         public override void InstallBindings()
         {
             _parent = new GameObject("World").transform;
-            BindPrefab(testInterfaceView, _parent);
+            BindPrefab(testInterfaceView, null);
             BindPool<TerrainChunk, TerrainChunkPool, ITerrainChunkPool>(terrainChunk, 1);
         }
         

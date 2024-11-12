@@ -164,7 +164,10 @@ public class ErosionCellSimulator : IErosionCellSimulator
             //Compute sediment capacity difference
             var heightDifference = _heightMap[flooredPosition.y][flooredPosition.x].y -
                                    _heightMap[(int)droplet.Position.z][(int)droplet.Position.x].y;
-                
+
+            if (heightDifference < 0)
+                heightDifference = 0;
+            
             var maxsediment = droplet.WaterVolume * droplet.Speed.magnitude * heightDifference;
 
                 
@@ -174,18 +177,34 @@ public class ErosionCellSimulator : IErosionCellSimulator
             var sdiff = maxsediment - droplet.SedimentConcentration;
 
             droplet.SedimentConcentration += depositionSpeed * sdiff;
-            _heightMap[flooredPosition.y][flooredPosition.x] -= Vector3.up * Mathf.Min(
+
+            var resultVector = Vector3.up * Mathf.Min(
                 droplet.WaterVolume * depositionSpeed * sdiff, heightDifference);
+            
+            _heightMap[flooredPosition.y][flooredPosition.x] -= resultVector;
+
+            var eligiblePositions = new List<Vector2Int>(8);
+            
+            for(var x = -1; x <= 1; ++x)
+            for (var y = -1; y <= 1; ++y)
+            {
+                if(x == 0 && y == 0)
+                    continue;
+                
+                if (IsPointInBounds(new Vector2Int(x, y), 1, _resolution))
+                    eligiblePositions.Add(new Vector2Int(x, y));
+            }
+
+            var eligiblePositionsCount = eligiblePositions.Count;
+
+            for (var i = 0; i < eligiblePositionsCount; ++i)
+                _heightMap[eligiblePositions[i].x][eligiblePositions[i].y] += resultVector / eligiblePositionsCount;
 
             droplet.WaterVolume *= (1.0f - waterEvaporation);
 
             --iterations;
         }
     }
-
-
-
-
 
     public void SimulateStep()
     {

@@ -11,7 +11,8 @@ namespace Services.MeshDataGeneratorService.Impls
             
         }
         
-        public MeshDataVo GenerateMesh(int resolution, float size)
+        public MeshDataVo GenerateMeshData(int resolution, float size
+            /*, Vector3 xVector, Vector3 yVector*/)
         {
             var meshData = new MeshDataVo();
             var vertices = GenerateGridArray<Vector3>(resolution);

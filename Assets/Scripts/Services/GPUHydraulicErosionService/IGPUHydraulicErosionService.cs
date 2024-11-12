@@ -5,9 +5,7 @@ namespace Services.GPUHydraulicErosionService
 {
     public interface IGPUHydraulicErosionService
     {
-        void SimulateErosionIteration(
-            HydraulicErosionIterationVo iterationData,
-            Texture heightMap,
-            Texture waterMap);
+        void SimulateErosionIteration(HydraulicErosionIterationVo iterationData, 
+            MeshDataVo meshDataVo);
     }
 }
