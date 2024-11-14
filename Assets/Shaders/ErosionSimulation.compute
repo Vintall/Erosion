@@ -1,39 +1,32 @@
-// SimultaneousErosionArray.compute
 #pragma kernel CSMain
 
-// Height map represented as a 2D array
-RWStructuredBuffer<float> heightMap;
+struct VertexState
+{
+    float height;
+    float water;
+    float sediment;
+};
 
-// Simulation parameters
+StructuredBuffer<VertexState> inVertexStates;
+RWStructuredBuffer<VertexState> outVertexStates;
+
 int mapWidth;
 int mapHeight;
-float deltaTime = 0.1;
-float erosionRate = 0.5;
-float depositionRate = 0.02;
-float evaporationRate = 0.01;
-float minSlope = 0.01;
+float erosionRate;
+float depositionRate;
+float evaporationRate;
+float sedimentCarryingCapacity;
+float soilSoftness;
+float minSlope;
 
-// Structured buffer to hold water levels
-RWStructuredBuffer<float> waterMap;
-
-float GetHeight(int2 pos)
+VertexState GetState(int2 pos)
 {
-    return heightMap[pos.y * mapWidth + pos.x];
+    return inVertexStates[pos.y * mapWidth + pos.x];
 }
 
-void SetHeight(int2 pos, float value)
+void SetState(int2 pos, VertexState value)
 {
-    heightMap[pos.y * mapWidth + pos.x] = value;
-}
-
-float GetWater(int2 pos)
-{
-    return waterMap[pos.y * mapWidth + pos.x];
-}
-
-void SetWater(int2 pos, float value)
-{
-    waterMap[pos.y * mapWidth + pos.x] = value;
+    outVertexStates[pos.y * mapWidth + pos.x] = value;
 }
 
 bool IsInBounds(int2 pos)
@@ -41,47 +34,115 @@ bool IsInBounds(int2 pos)
     return pos.x >= 0 && pos.y >= 0 && pos.x < mapWidth && pos.y < mapHeight;
 }
 
+VertexState NeighborInteraction(float neighborCoef, VertexState currentState, int2 currentPos, int2 neighborPos)
+{
+    VertexState neighborState = GetState(neighborPos);
+
+    float deltaWater = min(currentState.water,
+    ((currentState.water + currentState.height) -
+    (neighborState.water + neighborState.height) ) * neighborCoef);
+
+    if(deltaWater <= 0)
+    {
+        float deltaHeight = depositionRate * currentState.sediment;
+
+        currentState.height += deltaHeight;
+        currentState.sediment -= deltaHeight;
+
+    }
+    else
+    {
+        currentState.water -= deltaWater;
+        neighborState.water += deltaWater;
+
+        float c = deltaWater * sedimentCarryingCapacity;
+
+        if(currentState.sediment > c)
+        {
+            neighborState.sediment += c;
+            currentState.height += erosionRate * (currentState.sediment - c);
+            currentState.sediment = (1 - erosionRate) * (currentState.sediment - c);
+        }
+        else
+        {
+            neighborState.sediment += currentState.sediment + soilSoftness * (c - currentState.sediment);
+            currentState.height -= soilSoftness * (c - currentState.sediment);
+            currentState.sediment = 0;
+        }
+
+        if(currentState.height > neighborState.height)
+            currentState.height = neighborState. height;
+    }
+    
+    
+    
+    return currentState;
+}
+
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    // Get 2D position of the current thread
-    int2 pos = int2(id.xy);
-    if (pos.x >= mapWidth || pos.y >= mapHeight)
-        return; // Out-of-bounds check
+    int2 position = int2(id.xy);
+    VertexState currentState = GetState(position);
+    
+    if(!IsInBounds(position))
+        return;
 
-    // Get height and water level at the current position
-    float height = GetHeight(pos);
-    float water = GetWater(pos);
+    float heightDeltas[9];
+    int heightDeltasCount = 0;
+    float deltaAccumulated = 0;
 
-    // Accumulate sediment to erode based on slope difference with neighbors
-    //float sediment = 0.0;
-    for (int x = -1; x <= 1; x++)
+    for (int x = -1; x <= 1; ++x)
     {
-        for (int y = -1; y <= 1; y++)
+        for (int y = -1; y <= 1; ++y)
         {
-            if (x == 0 && y == 0) continue; // Skip the current cell
+            if (x == 0 && y == 0)
+                continue;
 
-            int2 neighborPos = pos + int2(x, y);
-            if (IsInBounds(neighborPos))
+            int2 neighborPos = position + int2(x, y);
+
+            if(!IsInBounds(neighborPos))
+                continue;
+
+            VertexState neighborState = GetState(neighborPos);
+            float delta = currentState.height - neighborState.height;
+
+            deltaAccumulated += delta;
+            
+            ++heightDeltasCount;
+            heightDeltas[x+1+(y+1)*3] = delta;
+        }
+    }
+    
+    for(int i = 0; i < 9; ++i)
+        heightDeltas[i] /= deltaAccumulated;
+
+    VertexState resultState; 
+    
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            if (x == 0 && y == 0)
+                continue;
+
+            int2 neighborPos = position + int2(x, y);
+
+            if(IsInBounds(neighborPos))
             {
-                float neighborHeight = GetHeight(neighborPos);
-                float slope = height - neighborHeight;
+                VertexState resultNeighborState = NeighborInteraction(heightDeltas[x+1+(y+1)*3], currentState, position, neighborPos);
 
-                if (slope > minSlope)
-                {
-                    float erosionAmount = erosionRate * slope;
-                    //sediment += erosionAmount;
-                    height -= erosionAmount;
-                }
+                resultState.height += resultNeighborState.height / heightDeltasCount;
+                resultState.sediment += resultNeighborState.sediment / heightDeltasCount;
+                resultState.water += resultNeighborState.water / heightDeltasCount;
+
             }
         }
     }
 
-    float deposit = water * depositionRate;
+    SetState(position, resultState);
+    
+    //float deposit = water * depositionRate;
     //height += deposit;
-
-    SetHeight(pos, height);
-    SetWater(pos, water * (1.0 - evaporationRate));
+    //SetWater(position, water * (1.0 - evaporationRate));
 }
-
-

@@ -6,7 +6,8 @@ namespace Services.GPUHydraulicErosionService.Impls
 {
     public class GPUHydraulicErosionService : IGPUHydraulicErosionService
     {
-        private static readonly int HeightMapPropertyId = Shader.PropertyToID("heightMap");
+        private static readonly int InVertexStatesPropertyId = Shader.PropertyToID("inVertexStates");
+        private static readonly int OutVertexStatesPropertyId = Shader.PropertyToID("outVertexStates");
         private static readonly int WaterMapPropertyId = Shader.PropertyToID("waterMap");
         private static readonly int DeltaTimePropertyId = Shader.PropertyToID("deltaTime");
         private static readonly int ErosionRatePropertyId = Shader.PropertyToID("erosionRate");
@@ -21,44 +22,80 @@ namespace Services.GPUHydraulicErosionService.Impls
             _commonShadersDatabase = commonShadersDatabase;
         }
 
+        struct VertexState
+        {
+            public float height;
+            public float water;
+            public float sediment;
+        }
+        
         public void SimulateErosionIteration(
             HydraulicErosionIterationVo iterationData,
             MeshDataVo meshDataVo)
         {
             var erosionShader = _commonShadersDatabase.HydraulicErosionComputeShader;
-            var kernel = erosionShader.FindKernel("CSMain");
-            var consecutiveVerticesFloat = new float[meshDataVo.Resolution * meshDataVo.Resolution];
+            var kernel = 0;
+            var verticesStates = new VertexState[meshDataVo.Resolution * meshDataVo.Resolution];
+            //var deltaHeightMap = new float[meshDataVo.Resolution * meshDataVo.Resolution];
+            
+            for (var i = 0; i < meshDataVo.Resolution; ++i)
+            for (var j = 0; j < meshDataVo.Resolution; ++j)
+                verticesStates[i * meshDataVo.Resolution + j] = new VertexState()
+                {
+                    height = meshDataVo.Vertices[i][j].y,
+                    sediment = 0,
+                    water = Random.Range(0, 1f)
+                };
+            
+            var inVertexStatesBuffer = new ComputeBuffer(verticesStates.Length, sizeof(float) * 3);
+            var outVertexStatesBuffer = new ComputeBuffer(verticesStates.Length, sizeof(float) * 3);
 
-            for(var i = 0;i<meshDataVo.Resolution;++i)
+            erosionShader.SetInt(Shader.PropertyToID("mapWidth"), meshDataVo.Resolution);
+            erosionShader.SetInt(Shader.PropertyToID("mapHeight"), meshDataVo.Resolution);
+            erosionShader.SetFloat(Shader.PropertyToID("soilSoftness"), iterationData.SoilSoftness);
+            erosionShader.SetFloat(Shader.PropertyToID("sedimentCarryingCapacity"),
+                iterationData.SedimentCarryingCapacity);
+            erosionShader.SetFloat(ErosionRatePropertyId, iterationData.ErosionRate);
+            erosionShader.SetFloat(DepositionRatePropertyId, iterationData.DepositionRate);
+            erosionShader.SetFloat(EvaporationRatePropertyId, iterationData.EvaporationRate);
+            erosionShader.SetFloat(MinSlopePropertyId, iterationData.MinSlope);
+            
+            for (var k = 0; k < 15; ++k)
+            {
+
+                //var heightDeltaBuffer = new ComputeBuffer(deltaHeightMap.Length, sizeof(float));
+
+                inVertexStatesBuffer.SetData(verticesStates);
+                outVertexStatesBuffer.SetData(verticesStates);
+                //heightDeltaBuffer.SetData(deltaHeightMap);
+                erosionShader.SetBuffer(kernel, InVertexStatesPropertyId, inVertexStatesBuffer);
+                erosionShader.SetBuffer(kernel, OutVertexStatesPropertyId, outVertexStatesBuffer);
+                //erosionShader.SetBuffer(kernel, Shader.PropertyToID("deltaHeightMap"), heightDeltaBuffer);
+                
+
+                erosionShader.Dispatch(kernel, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
+
+
+                outVertexStatesBuffer.GetData(verticesStates);
+                //heightDeltaBuffer.GetData(deltaHeightMap);
+
+                //heightDeltaBuffer.Release();
+                
+
+                
+            }
+            
+            inVertexStatesBuffer.Release();
+            outVertexStatesBuffer.Release();
+            
+            for (var i = 0; i < meshDataVo.Resolution; ++i)
             for (var j = 0; j < meshDataVo.Resolution; ++j)
             {
-                consecutiveVerticesFloat[i * meshDataVo.Resolution + j] = meshDataVo.Vertices[i][j].y;
+                meshDataVo.Vertices[i][j] += Vector3.up *
+                                             (verticesStates[i * meshDataVo.Resolution + j].height -
+                                              meshDataVo.Vertices[i][j].y);
             }
-            
-            ComputeBuffer heightBuffer = new ComputeBuffer(consecutiveVerticesFloat.Length, sizeof(float));
-            heightBuffer.SetData(consecutiveVerticesFloat);
-            erosionShader.SetBuffer(0, "heightMap", heightBuffer);
 
-            ComputeBuffer waterBuffer = new ComputeBuffer(consecutiveVerticesFloat.Length, sizeof(float));
-            waterBuffer.SetData(consecutiveVerticesFloat);
-            erosionShader.SetBuffer(0, "waterMap", waterBuffer);
-
-            erosionShader.SetInt("mapWidth", meshDataVo.Resolution);
-            erosionShader.SetInt("mapHeight", meshDataVo.Resolution);
-            
-            erosionShader.Dispatch(kernel, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
-            
-            heightBuffer.GetData(consecutiveVerticesFloat);
-
-            for (var i = 0; i < meshDataVo.Resolution; ++i)
-            for (int j = 0; j < meshDataVo.Resolution; ++j)
-            {
-                meshDataVo.Vertices[i][j] = new Vector3(
-                    meshDataVo.Vertices[i][j].x, 
-                    consecutiveVerticesFloat[i * meshDataVo.Resolution + j], 
-                    meshDataVo.Vertices[i][j].z);
-            }
-                
             //meshDataVo.Vertices = consecutiveVerticesVec.ConvertToMatrixArray(consecutiveVerticesVec.Length);
         }
     }

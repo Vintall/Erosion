@@ -390,6 +390,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: MainSceneContext
       objectReference: {fileID: 0}
+    - target: {fileID: 662601821474372928, guid: d912f17eeee53344aaff42686f16acd8,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3640172664747780383, guid: d912f17eeee53344aaff42686f16acd8,
         type: 3}
       propertyPath: m_LocalPosition.x

@@ -7,6 +7,7 @@ using Services.GPUHydraulicErosionService;
 using Services.NoiseGeneration;
 using Services.PlaneGeneration;
 using Services.PlaneSpawnerService;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using Zenject;
@@ -47,33 +48,29 @@ namespace Services.TestInterfaceController.Impls
         {
             _view.OnSimulateButtonPress += OnSimulateButtonPress;
             _view.OnResetButtonPress += OnResetButtonPress;
+
+            Selection.activeGameObject = _view.gameObject;
             
             OnResetButtonPress();
         }
 
         private void OnSimulateButtonPress()
         {
-            _erosionCellSimulator.SetupSimulator(_currentTerrainChunk.MeshData.Vertices);
-            
-            
             for (var i = 0; i < _view.Iteration; ++i)
             {
-                
-                // _gpuHydraulicErosionService.SimulateErosionIteration(
-                //     new HydraulicErosionIterationVo()
-                //     {
-                //         DeltaTime = 1,
-                //         DepositionRate = 0.97f,
-                //         ErosionRate = 0.03f,
-                //         EvaporationRate = 0.01f,
-                //         MinSlope = -4f
-                //     },
-                //     _currentTerrainChunk.MeshData);
-                _erosionCellSimulator.SimulateDroplet(new Vector2(Random.Range(1, 255), Random.Range(1, 255)));
+                 _gpuHydraulicErosionService.SimulateErosionIteration(
+                     new HydraulicErosionIterationVo
+                     {
+                         DepositionRate = _view.HydraulicErosionIterationVo.DepositionRate,
+                         ErosionRate = _view.HydraulicErosionIterationVo.ErosionRate,
+                         EvaporationRate = _view.HydraulicErosionIterationVo.EvaporationRate,
+                         MinSlope = _view.HydraulicErosionIterationVo.MinSlope,
+                         SedimentCarryingCapacity = _view.HydraulicErosionIterationVo.SedimentCarryingCapacity,
+                         SoilSoftness = _view.HydraulicErosionIterationVo.SoilSoftness
+                     },
+                     _currentTerrainChunk.MeshData);
             }
 
-            _currentTerrainChunk.MeshData.Vertices = _erosionCellSimulator.HeightMap;
-            
             _currentTerrainChunk.MeshFilter.mesh = 
                 _terrainChunkGeneratorService.GenerateMeshFromMeshData(_currentTerrainChunk.MeshData);
             
@@ -88,7 +85,6 @@ namespace Services.TestInterfaceController.Impls
             }
 
             _currentTerrainChunk = _terrainChunkGeneratorService.GenerateTerrainChunk(256, 10);
-            //_noiseGeneratorService.GeneratePoint()
         }
     }
 }

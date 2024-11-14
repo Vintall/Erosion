@@ -146,7 +146,7 @@ public class ErosionCellSimulator : IErosionCellSimulator
                 flooredPosition.y < 0 ||
                 flooredPosition.y >= _resolution - 1)
                 return;
-
+            
             var normal = GetSurfaceNormal(flooredPosition, new Vector2(droplet.Position.x, droplet.Position.z));
                 
             //Accelerate particle using newtonian mechanics using the surface normal.

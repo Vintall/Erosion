@@ -44,3 +44,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5cef37353a632746a4cfa437a62a4a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hydraulicErosionIterationVo:
+    ErosionRate: 0.1
+    DepositionRate: 0.1
+    EvaporationRate: 0.1
+    MinSlope: 0.1
+    SedimentCarryingCapacity: 0.1
+    SoilSoftness: 0.1
+  iterations: 1
