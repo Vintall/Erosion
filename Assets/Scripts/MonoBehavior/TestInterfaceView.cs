@@ -1,4 +1,5 @@
 using System;
+using Enums;
 using Models;
 using UnityEditor;
 using UnityEngine;
@@ -10,11 +11,12 @@ namespace MonoBehavior
     {
         public Action OnSimulateButtonPress;
         public Action OnResetButtonPress;
+        public Action OnSampleToPNGPress;
         [SerializeField] private HydraulicErosionIterationVo hydraulicErosionIterationVo;
-        [SerializeField] private int iterations;
+        [SerializeField] private EHydraulicErosionType hydraulicErosionType;
         
         public HydraulicErosionIterationVo HydraulicErosionIterationVo => hydraulicErosionIterationVo;
-        public int Iteration => iterations;
+        public EHydraulicErosionType HydraulicErosionType => hydraulicErosionType;
     }
 
     [CustomEditor(typeof(TestInterfaceView))]
@@ -35,8 +37,11 @@ namespace MonoBehavior
             if(GUILayout.Button($"Reset terrain chunk"))
                 _target.OnResetButtonPress?.Invoke();
             
-            if(GUILayout.Button($"Simulate {_target.Iteration} iterations"))
+            if(GUILayout.Button($"Simulate {_target.HydraulicErosionIterationVo.IterationsCount} iterations"))
                 _target.OnSimulateButtonPress?.Invoke();
+            
+            if(GUILayout.Button($"Sample to .png"))
+                _target.OnSampleToPNGPress?.Invoke();
         }
     }
 }

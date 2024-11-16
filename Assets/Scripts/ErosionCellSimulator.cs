@@ -155,9 +155,9 @@ public class ErosionCellSimulator : IErosionCellSimulator
             droplet.Position += droplet.Speed;
             droplet.Speed *= 1.0f - friction; //Friction Factor
 
-            if (droplet.Position.x <= 0 ||
+            if (droplet.Position.x < 0 ||
                 droplet.Position.x > _resolution - 1 ||
-                droplet.Position.z <= 0 ||
+                droplet.Position.z < 0 ||
                 droplet.Position.z > _resolution - 1)
                 return;
 
@@ -190,9 +190,12 @@ public class ErosionCellSimulator : IErosionCellSimulator
             {
                 if(x == 0 && y == 0)
                     continue;
+
+                var xx = x + flooredPosition.x;
+                var yy = y + flooredPosition.y;
                 
-                if (IsPointInBounds(new Vector2Int(x, y), 1, _resolution))
-                    eligiblePositions.Add(new Vector2Int(x, y));
+                if (IsPointInBounds(new Vector2Int(xx, yy), 1, _resolution))
+                    eligiblePositions.Add(new Vector2Int(xx, yy));
             }
 
             var eligiblePositionsCount = eligiblePositions.Count;

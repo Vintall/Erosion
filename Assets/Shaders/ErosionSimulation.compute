@@ -34,49 +34,48 @@ bool IsInBounds(int2 pos)
     return pos.x >= 0 && pos.y >= 0 && pos.x < mapWidth && pos.y < mapHeight;
 }
 
-VertexState NeighborInteraction(float neighborCoef, VertexState currentState, int2 currentPos, int2 neighborPos)
+void NeighborInteraction(int2 currentPos, int2 neighborPos, out VertexState resultCurrent, out VertexState resultNeighbor)
 {
+    VertexState currentState = GetState(currentPos);
     VertexState neighborState = GetState(neighborPos);
+    VertexState resultState = currentState;
 
     float deltaWater = min(currentState.water,
     ((currentState.water + currentState.height) -
-    (neighborState.water + neighborState.height) ) * neighborCoef);
+    (neighborState.water + neighborState.height)));
 
     if(deltaWater <= 0)
     {
         float deltaHeight = depositionRate * currentState.sediment;
 
-        currentState.height += deltaHeight;
-        currentState.sediment -= deltaHeight;
+        resultState.height += deltaHeight;
+        resultState.sediment -= deltaHeight;
 
     }
     else
     {
-        currentState.water -= deltaWater;
+        resultState.water -= deltaWater;
         neighborState.water += deltaWater;
 
-        float c = deltaWater * sedimentCarryingCapacity;
+        float maximumCarryingSediment = deltaWater * sedimentCarryingCapacity;
 
-        if(currentState.sediment > c)
+        if(currentState.sediment > maximumCarryingSediment)
         {
-            neighborState.sediment += c;
-            currentState.height += erosionRate * (currentState.sediment - c);
-            currentState.sediment = (1 - erosionRate) * (currentState.sediment - c);
+            neighborState.sediment += maximumCarryingSediment;
+            float remainingSediment = currentState.sediment - maximumCarryingSediment;
+            resultState.height += depositionRate * remainingSediment;
+            resultState.sediment -= depositionRate * remainingSediment;
         }
         else
         {
-            neighborState.sediment += currentState.sediment + soilSoftness * (c - currentState.sediment);
-            currentState.height -= soilSoftness * (c - currentState.sediment);
-            currentState.sediment = 0;
+            neighborState.sediment += currentState.sediment + soilSoftness * (maximumCarryingSediment - currentState.sediment);
+            resultState.height -= soilSoftness * (maximumCarryingSediment - currentState.sediment);
+            resultState.sediment = 0;
         }
-
-        if(currentState.height > neighborState.height)
-            currentState.height = neighborState. height;
     }
-    
-    
-    
-    return currentState;
+
+    resultCurrent = resultState;
+    resultNeighbor = neighborState;
 }
 
 [numthreads(8, 8, 1)]
@@ -130,12 +129,21 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
             if(IsInBounds(neighborPos))
             {
-                VertexState resultNeighborState = NeighborInteraction(heightDeltas[x+1+(y+1)*3], currentState, position, neighborPos);
+                VertexState resultCurrent;
+                VertexState resultNeighbor;
+                NeighborInteraction(position, neighborPos, resultCurrent, resultNeighbor);
 
-                resultState.height += resultNeighborState.height / heightDeltasCount;
-                resultState.sediment += resultNeighborState.sediment / heightDeltasCount;
-                resultState.water += resultNeighborState.water / heightDeltasCount;
+                resultState.height += resultCurrent.height / heightDeltasCount;
+                resultState.sediment += resultCurrent.sediment / heightDeltasCount;
+                resultState.water += resultCurrent.water / heightDeltasCount;
 
+                VertexState authenticNeighbor = GetState(neighborPos);
+                
+                //resultNeighbor.height = (resultNeighbor.height + authenticNeighbor.height) / 2;
+                //resultNeighbor.water = (resultNeighbor.water + authenticNeighbor.water) / 2;
+                //resultNeighbor.sediment = (resultNeighbor.sediment + authenticNeighbor.sediment) / 2;
+                
+                //SetState(neighborPos, resultNeighbor);
             }
         }
     }

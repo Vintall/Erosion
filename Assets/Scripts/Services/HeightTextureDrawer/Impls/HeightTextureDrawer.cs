@@ -1,4 +1,5 @@
-﻿using Databases.CommonShadersDatabase;
+﻿using System;
+using Databases.CommonShadersDatabase;
 using Databases.HeightTextureDrawer;
 using UnityEngine;
 using UnityEngine.Windows;
@@ -8,12 +9,18 @@ namespace Services.HeightTextureDrawer.Impls
     public class HeightTextureDrawer : IHeightTextureDrawer
     {
         private readonly IHeightTextureDrawerStyleDatabase _heightTextureDrawerStyleDatabase;
-
+        private string _generationPath = "C:\\Users\\Vintall\\Desktop\\Maps\\";
+        
         public HeightTextureDrawer(
             IHeightTextureDrawerStyleDatabase heightTextureDrawerStyleDatabase,
             ICommonShadersDatabase commonShadersDatabase)
         {
             _heightTextureDrawerStyleDatabase = heightTextureDrawerStyleDatabase;
+        }
+
+        public void SetPath(string path)
+        {
+            _generationPath = path;
         }
         
         public void GenerateTexture(Vector3[][] vertices, int resolution)
@@ -44,9 +51,9 @@ namespace Services.HeightTextureDrawer.Impls
                 texture2D.SetPixel(x, z, finalColor);
             }
             
-            Directory.CreateDirectory($"C:\\Users\\Vintall\\Desktop\\Maps\\");
+            Directory.CreateDirectory(_generationPath);
             
-            var path = $"C:\\Users\\Vintall\\Desktop\\Maps\\{Random.Range(0, 1000000).ToString()}.png";
+            var path = $"{_generationPath}{DateTime.Now.Year}_{DateTime.Now.Month}_{DateTime.Now.Day}_{DateTime.Now.Hour}_{DateTime.Now.Minute}_{DateTime.Now.Second}.png";
             File.WriteAllBytes(path, texture2D.EncodeToPNG());
         }
 

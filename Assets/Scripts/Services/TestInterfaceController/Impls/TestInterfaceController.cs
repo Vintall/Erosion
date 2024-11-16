@@ -1,15 +1,14 @@
-﻿using System.Runtime.InteropServices;
-using Extensions;
+﻿using Enums;
 using Models;
 using MonoBehavior;
 using Pools.PlanePool;
 using Services.GPUHydraulicErosionService;
+using Services.HeightTextureDrawer;
 using Services.NoiseGeneration;
 using Services.PlaneGeneration;
 using Services.PlaneSpawnerService;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using Zenject;
 
 namespace Services.TestInterfaceController.Impls
@@ -17,37 +16,39 @@ namespace Services.TestInterfaceController.Impls
     public class TestInterfaceController : ITestInterfaceController, IInitializable
     {
         private readonly TestInterfaceView _view;
-        private readonly IGPUHydraulicErosionService _gpuHydraulicErosionService;
+        private readonly IHydraulicErosionService _hydraulicErosionService;
         private readonly INoiseGeneratorService _noiseGeneratorService;
         private readonly IPlaneSpawnerService _planeSpawnerService;
         private readonly ITerrainChunkPool _terrainChunkPool;
         private readonly ITerrainChunkGeneratorService _terrainChunkGeneratorService;
-        private readonly IErosionCellSimulator _erosionCellSimulator;
+        private readonly IHeightTextureDrawer _heightTextureDrawer;
 
         private TerrainChunk _currentTerrainChunk;
         
         public TestInterfaceController(
             TestInterfaceView testInterfaceView,
-            IGPUHydraulicErosionService gpuHydraulicErosionService,
+            IHydraulicErosionService hydraulicErosionService,
             INoiseGeneratorService noiseGeneratorService,
             IPlaneSpawnerService planeSpawnerService,
             ITerrainChunkPool terrainChunkPool,
             ITerrainChunkGeneratorService terrainChunkGeneratorService,
-            IErosionCellSimulator erosionCellSimulator)
+            
+            IHeightTextureDrawer heightTextureDrawer)
         {
             _view = testInterfaceView;
-            _gpuHydraulicErosionService = gpuHydraulicErosionService;
+            _hydraulicErosionService = hydraulicErosionService;
             _noiseGeneratorService = noiseGeneratorService;
             _planeSpawnerService = planeSpawnerService;
             _terrainChunkPool = terrainChunkPool;
             _terrainChunkGeneratorService = terrainChunkGeneratorService;
-            _erosionCellSimulator = erosionCellSimulator;
+            _heightTextureDrawer = heightTextureDrawer;
         }
 
         public void Initialize()
         {
             _view.OnSimulateButtonPress += OnSimulateButtonPress;
             _view.OnResetButtonPress += OnResetButtonPress;
+            _view.OnSampleToPNGPress += OnSampleToPNGPress;
 
             Selection.activeGameObject = _view.gameObject;
             
@@ -56,24 +57,14 @@ namespace Services.TestInterfaceController.Impls
 
         private void OnSimulateButtonPress()
         {
-            for (var i = 0; i < _view.Iteration; ++i)
-            {
-                 _gpuHydraulicErosionService.SimulateErosionIteration(
-                     new HydraulicErosionIterationVo
-                     {
-                         DepositionRate = _view.HydraulicErosionIterationVo.DepositionRate,
-                         ErosionRate = _view.HydraulicErosionIterationVo.ErosionRate,
-                         EvaporationRate = _view.HydraulicErosionIterationVo.EvaporationRate,
-                         MinSlope = _view.HydraulicErosionIterationVo.MinSlope,
-                         SedimentCarryingCapacity = _view.HydraulicErosionIterationVo.SedimentCarryingCapacity,
-                         SoilSoftness = _view.HydraulicErosionIterationVo.SoilSoftness
-                     },
-                     _currentTerrainChunk.MeshData);
-            }
+            _hydraulicErosionService.SimulateErosion(
+                _view.HydraulicErosionIterationVo,
+                _currentTerrainChunk.MeshData,
+                _view.HydraulicErosionType);
 
-            _currentTerrainChunk.MeshFilter.mesh = 
+            _currentTerrainChunk.MeshFilter.mesh =
                 _terrainChunkGeneratorService.GenerateMeshFromMeshData(_currentTerrainChunk.MeshData);
-            
+
         }
 
         private void OnResetButtonPress()
@@ -85,6 +76,15 @@ namespace Services.TestInterfaceController.Impls
             }
 
             _currentTerrainChunk = _terrainChunkGeneratorService.GenerateTerrainChunk(256, 10);
+        }
+
+        private void OnSampleToPNGPress()
+        {
+            if(_currentTerrainChunk == null)
+                return;
+            
+            _heightTextureDrawer.GenerateTexture(_currentTerrainChunk.MeshData.Vertices,
+                _currentTerrainChunk.MeshData.Resolution);
         }
     }
 }

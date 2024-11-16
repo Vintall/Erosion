@@ -1,27 +1,28 @@
-using Databases.CommonShadersDatabase;
+﻿using Databases.CommonShadersDatabase;
+using Enums;
 using Models;
 using UnityEngine;
 
-namespace Services.GPUHydraulicErosionService.Impls
+namespace Strategies.HydraulicErosion.Impls
 {
-    public class GPUHydraulicErosionService : IGPUHydraulicErosionService
+    public class GPUGridBasedErosionStrategy : IHydraulicErosionStrategy
     {
         private static readonly int InVertexStatesPropertyId = Shader.PropertyToID("inVertexStates");
         private static readonly int OutVertexStatesPropertyId = Shader.PropertyToID("outVertexStates");
-        private static readonly int WaterMapPropertyId = Shader.PropertyToID("waterMap");
-        private static readonly int DeltaTimePropertyId = Shader.PropertyToID("deltaTime");
         private static readonly int ErosionRatePropertyId = Shader.PropertyToID("erosionRate");
         private static readonly int DepositionRatePropertyId = Shader.PropertyToID("depositionRate");
         private static readonly int EvaporationRatePropertyId = Shader.PropertyToID("evaporationRate");
         private static readonly int MinSlopePropertyId = Shader.PropertyToID("minSlope");
         private readonly ICommonShadersDatabase _commonShadersDatabase;
+        
+        public EHydraulicErosionType HydraulicErosionType => EHydraulicErosionType.GridGPU;
 
-        public GPUHydraulicErosionService(
+        public GPUGridBasedErosionStrategy(
             ICommonShadersDatabase commonShadersDatabase)
         {
             _commonShadersDatabase = commonShadersDatabase;
         }
-
+        
         struct VertexState
         {
             public float height;
@@ -29,9 +30,7 @@ namespace Services.GPUHydraulicErosionService.Impls
             public float sediment;
         }
         
-        public void SimulateErosionIteration(
-            HydraulicErosionIterationVo iterationData,
-            MeshDataVo meshDataVo)
+        public void Execute(HydraulicErosionIterationVo iterationData, MeshDataVo meshDataVo)
         {
             var erosionShader = _commonShadersDatabase.HydraulicErosionComputeShader;
             var kernel = 0;
@@ -60,9 +59,8 @@ namespace Services.GPUHydraulicErosionService.Impls
             erosionShader.SetFloat(EvaporationRatePropertyId, iterationData.EvaporationRate);
             erosionShader.SetFloat(MinSlopePropertyId, iterationData.MinSlope);
             
-            for (var k = 0; k < 15; ++k)
+            for (var k = 0; k < 100; ++k)
             {
-
                 //var heightDeltaBuffer = new ComputeBuffer(deltaHeightMap.Length, sizeof(float));
 
                 inVertexStatesBuffer.SetData(verticesStates);
@@ -71,10 +69,7 @@ namespace Services.GPUHydraulicErosionService.Impls
                 erosionShader.SetBuffer(kernel, InVertexStatesPropertyId, inVertexStatesBuffer);
                 erosionShader.SetBuffer(kernel, OutVertexStatesPropertyId, outVertexStatesBuffer);
                 //erosionShader.SetBuffer(kernel, Shader.PropertyToID("deltaHeightMap"), heightDeltaBuffer);
-                
-
                 erosionShader.Dispatch(kernel, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
-
 
                 outVertexStatesBuffer.GetData(verticesStates);
                 //heightDeltaBuffer.GetData(deltaHeightMap);
@@ -95,8 +90,6 @@ namespace Services.GPUHydraulicErosionService.Impls
                                              (verticesStates[i * meshDataVo.Resolution + j].height -
                                               meshDataVo.Vertices[i][j].y);
             }
-
-            //meshDataVo.Vertices = consecutiveVerticesVec.ConvertToMatrixArray(consecutiveVerticesVec.Length);
         }
     }
 }
