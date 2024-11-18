@@ -12,11 +12,14 @@ namespace MonoBehavior
         public Action OnSimulateButtonPress;
         public Action OnResetButtonPress;
         public Action OnSampleToPNGPress;
+        public Action OnApplyGaussianBlurPress;
         [SerializeField] private HydraulicErosionIterationVo hydraulicErosionIterationVo;
         [SerializeField] private EHydraulicErosionType hydraulicErosionType;
+        [SerializeField] private bool applyGaussianBlurAfterIterationsBlock;
         
         public HydraulicErosionIterationVo HydraulicErosionIterationVo => hydraulicErosionIterationVo;
         public EHydraulicErosionType HydraulicErosionType => hydraulicErosionType;
+        public bool ApplyGaussianBlurAfterIterationsBlock => applyGaussianBlurAfterIterationsBlock;
     }
 
     [CustomEditor(typeof(TestInterfaceView))]
@@ -42,6 +45,9 @@ namespace MonoBehavior
             
             if(GUILayout.Button($"Sample to .png"))
                 _target.OnSampleToPNGPress?.Invoke();
+            
+            if(GUILayout.Button($"Apply Gaussian Blur"))
+                _target.OnApplyGaussianBlurPress?.Invoke();
         }
     }
 }
