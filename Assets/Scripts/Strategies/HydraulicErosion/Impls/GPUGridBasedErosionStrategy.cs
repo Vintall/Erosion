@@ -43,7 +43,7 @@ namespace Strategies.HydraulicErosion.Impls
                 {
                     height = meshDataVo.Vertices[i][j].y,
                     sediment = 0,
-                    water = Random.Range(0, 1f)
+                    water = 1
                 };
             
             var inVertexStatesBuffer = new ComputeBuffer(verticesStates.Length, sizeof(float) * 3);
@@ -58,28 +58,35 @@ namespace Strategies.HydraulicErosion.Impls
             erosionShader.SetFloat(DepositionRatePropertyId, iterationData.DepositionRate);
             erosionShader.SetFloat(EvaporationRatePropertyId, iterationData.EvaporationRate);
             erosionShader.SetFloat(MinSlopePropertyId, iterationData.MinSlope);
-            
-            for (var k = 0; k < 100; ++k)
+
+            for (var l = 0; l < iterationData.IterationsCount; ++l)
             {
-                //var heightDeltaBuffer = new ComputeBuffer(deltaHeightMap.Length, sizeof(float));
+                for (var i = 0; i < meshDataVo.Resolution; ++i)
+                for (var j = 0; j < meshDataVo.Resolution; ++j)
+                    verticesStates[i * meshDataVo.Resolution + j].water = Random.Range(0, 1f);
 
-                inVertexStatesBuffer.SetData(verticesStates);
-                outVertexStatesBuffer.SetData(verticesStates);
-                //heightDeltaBuffer.SetData(deltaHeightMap);
-                erosionShader.SetBuffer(kernel, InVertexStatesPropertyId, inVertexStatesBuffer);
-                erosionShader.SetBuffer(kernel, OutVertexStatesPropertyId, outVertexStatesBuffer);
-                //erosionShader.SetBuffer(kernel, Shader.PropertyToID("deltaHeightMap"), heightDeltaBuffer);
-                erosionShader.Dispatch(kernel, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
+                for (var k = 0; k < 100; ++k)
+                {
+                    //var heightDeltaBuffer = new ComputeBuffer(deltaHeightMap.Length, sizeof(float));
 
-                outVertexStatesBuffer.GetData(verticesStates);
-                //heightDeltaBuffer.GetData(deltaHeightMap);
+                    inVertexStatesBuffer.SetData(verticesStates);
+                    outVertexStatesBuffer.SetData(verticesStates);
+                    //heightDeltaBuffer.SetData(deltaHeightMap);
+                    erosionShader.SetBuffer(kernel, InVertexStatesPropertyId, inVertexStatesBuffer);
+                    erosionShader.SetBuffer(kernel, OutVertexStatesPropertyId, outVertexStatesBuffer);
+                    //erosionShader.SetBuffer(kernel, Shader.PropertyToID("deltaHeightMap"), heightDeltaBuffer);
+                    erosionShader.Dispatch(kernel, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
 
-                //heightDeltaBuffer.Release();
-                
+                    outVertexStatesBuffer.GetData(verticesStates);
+                    //heightDeltaBuffer.GetData(deltaHeightMap);
 
-                
+                    //heightDeltaBuffer.Release();
+
+
+
+                }
             }
-            
+
             inVertexStatesBuffer.Release();
             outVertexStatesBuffer.Release();
             
