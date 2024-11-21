@@ -10,15 +10,15 @@ namespace Installers.MainScene
     [CreateAssetMenu(menuName = "Installers/MainScene/PrefabsInstaller", fileName = "MainScenePrefabsInstaller")]
     public class MainScenePrefabsInstaller : ScriptableObjectInstaller<MainScenePrefabsInstaller>
     {
-        [SerializeField] private TestInterfaceView testInterfaceView;
+        [SerializeField] private MainInterfaceView mainInterfaceView;
         [SerializeField] private TerrainChunk terrainChunk;
         
         private Transform _parent;
         
         public override void InstallBindings()
         {
-            _parent = new GameObject("World").transform;
-            BindPrefab(testInterfaceView, null);
+            //_parent = new GameObject("World").transform;
+            BindPrefab(mainInterfaceView, null);
             BindPool<TerrainChunk, TerrainChunkPool, ITerrainChunkPool>(terrainChunk, 1);
         }
         

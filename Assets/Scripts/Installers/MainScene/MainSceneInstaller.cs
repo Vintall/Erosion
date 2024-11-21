@@ -1,11 +1,10 @@
 using Services.GausianBlur.Impls;
 using Services.GPUHydraulicErosionService.Impls;
 using Services.HeightTextureDrawer.Impls;
+using Services.MainInterfaceController.Impls;
 using Services.MeshDataGeneratorService.Impls;
 using Services.NoiseGeneration.Impls;
 using Services.PlaneGeneration.Impls;
-using Services.PlaneSpawnerService.Impls;
-using Services.TestInterfaceController.Impls;
 using Strategies.HydraulicErosion;
 using Strategies.HydraulicErosion.Impls;
 using Zenject;
@@ -27,11 +26,9 @@ namespace Installers.MainScene
             BindService<GaussianBlurService>();
             BindService<PerlinNoiseGeneratorService>();
             BindService<HeightTextureDrawer>();
-            BindService<PlaneSpawnerService>();
             BindService<HydraulicErosionService>();
-            BindService<TestInterfaceController>();
+            BindService<MainInterfaceController>();
             BindService<TerrainChunkGeneratorService>();
-            BindService<ErosionCellSimulator>();
         }
 
         private void BindService<T>()
@@ -41,10 +38,16 @@ namespace Installers.MainScene
 
         private void BindHydraulicErosionStrategies()
         {
-            Container.Bind<IHydraulicErosionStrategy>().To<CPUGridBasedErosionStrategy>().AsCached();
-            Container.Bind<IHydraulicErosionStrategy>().To<CPUParticleBasedErosionStrategy>().AsCached();
-            Container.Bind<IHydraulicErosionStrategy>().To<GPUGridBasedErosionStrategy>().AsCached();
-            Container.Bind<IHydraulicErosionStrategy>().To<GPUParticleBasedErosionStrategy>().AsCached();
+            BindErosionStrategy<CPUGridBasedErosionStrategy>();
+            BindErosionStrategy<CPUParticleBasedErosionStrategy>();
+            BindErosionStrategy<GPUGridBasedErosionStrategy>();
+            BindErosionStrategy<GPUParticleBasedErosionStrategy>();
+            BindErosionStrategy<SnowballCPUErosionStrategy>();
+        }
+
+        private void BindErosionStrategy<T>() where T : IHydraulicErosionStrategy
+        {
+            Container.Bind<IHydraulicErosionStrategy>().To<T>().AsCached();
         }
     }
 }

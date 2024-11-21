@@ -16,10 +16,6 @@ namespace Services.PlaneGeneration.Impls
     public class TerrainChunkGeneratorService : ITerrainChunkGeneratorService
     {
         private readonly ITerrainChunkPool _terrainChunkPool;
-        private readonly INoiseGeneratorService _noiseGeneratorService;
-        private readonly IHeightTextureDrawer _heightTextureDrawer;
-        private readonly IGaussianBlurService _gaussianBlurService;
-        private readonly IErosionCellSimulator _erosionCellSimulator;
         private readonly IMeshDataGeneratorService _meshDataGeneratorService;
 
         [SerializeField] private List<NoiseLayerVo> noiseLayers;
@@ -30,17 +26,9 @@ namespace Services.PlaneGeneration.Impls
 
         public TerrainChunkGeneratorService(
             ITerrainChunkPool terrainChunkPool,
-            INoiseGeneratorService noiseGeneratorService,
-            IHeightTextureDrawer heightTextureDrawer,
-            IGaussianBlurService gaussianBlurService,
-            IErosionCellSimulator erosionCellSimulator,
             IMeshDataGeneratorService meshDataGeneratorService)
         {
             _terrainChunkPool = terrainChunkPool;
-            _noiseGeneratorService = noiseGeneratorService;
-            _heightTextureDrawer = heightTextureDrawer;
-            _gaussianBlurService = gaussianBlurService;
-            _erosionCellSimulator = erosionCellSimulator;
             _meshDataGeneratorService = meshDataGeneratorService;
         }
         
@@ -59,30 +47,7 @@ namespace Services.PlaneGeneration.Impls
             
             terrainChunk.MeshData = meshData;
             terrainChunk.MeshFilter.mesh = newMesh;
-            //if (useErrosion)
-            //{
-            //    planeObject.name += " Erroded";
-
-                //_erosionCellSimulator.SetupSimulator(meshData.Vertices);
-
-            //    for (var i = 0; i < iterationsCount; ++i)
-            //    {
-            //        var position = new Vector2(Random.Range(0f, resolution - 1), Random.Range(0f, resolution - 1));
-                    //_erosionCellSimulator.SimulateDroplet(position);
-            //    }
-            //}
-
-            //if (applyGaussianBlur)
-            //    _gaussianBlurService.ApplyGaussianBlur(ref meshData.Vertices, meshData.Resolution);
-
-            //_heightTextureDrawer.GenerateTexture(meshData.Vertices, resolution);
             
-            
-
-            
-            //
-            //planeObject.MeshFilter.mesh = newMesh;
-
             return terrainChunk;
         }
 

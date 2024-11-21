@@ -5,6 +5,7 @@
         ParticlesCPU,
         ParticlesGPU,
         GridCPU,
-        GridGPU
+        GridGPU,
+        SnowballCPU
     }
 }

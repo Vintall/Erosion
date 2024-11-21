@@ -1,4 +1,5 @@
-﻿using Enums;
+﻿using System;
+using Enums;
 using Models;
 
 namespace Strategies.HydraulicErosion.Impls
@@ -7,9 +8,10 @@ namespace Strategies.HydraulicErosion.Impls
     {
         public EHydraulicErosionType HydraulicErosionType => EHydraulicErosionType.ParticlesGPU;
         
-        public void Execute(HydraulicErosionIterationVo iterationData, MeshDataVo meshDataVo)
+        public void Execute(HydraulicErosionIterationVo iterationData, 
+            MeshDataVo meshDataVo, Action<int> iterationTimestamp)
         {
-            throw new System.NotImplementedException();
+            
         }
     }
 }

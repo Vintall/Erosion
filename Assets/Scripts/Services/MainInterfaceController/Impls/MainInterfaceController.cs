@@ -1,5 +1,4 @@
-﻿using Enums;
-using Models;
+﻿using System.Diagnostics;
 using MonoBehavior;
 using Pools.PlanePool;
 using Services.GausianBlur;
@@ -7,19 +6,17 @@ using Services.GPUHydraulicErosionService;
 using Services.HeightTextureDrawer;
 using Services.NoiseGeneration;
 using Services.PlaneGeneration;
-using Services.PlaneSpawnerService;
+using Services.TestInterfaceController;
 using UnityEditor;
-using UnityEngine;
 using Zenject;
 
-namespace Services.TestInterfaceController.Impls
+namespace Services.MainInterfaceController.Impls
 {
-    public class TestInterfaceController : ITestInterfaceController, IInitializable
+    public class MainInterfaceController : IMainInterfaceController, IInitializable
     {
-        private readonly TestInterfaceView _view;
+        private readonly MainInterfaceView _view;
         private readonly IHydraulicErosionService _hydraulicErosionService;
         private readonly INoiseGeneratorService _noiseGeneratorService;
-        private readonly IPlaneSpawnerService _planeSpawnerService;
         private readonly ITerrainChunkPool _terrainChunkPool;
         private readonly ITerrainChunkGeneratorService _terrainChunkGeneratorService;
         private readonly IGaussianBlurService _gaussianBlurService;
@@ -27,20 +24,18 @@ namespace Services.TestInterfaceController.Impls
 
         private TerrainChunk _currentTerrainChunk;
         
-        public TestInterfaceController(
-            TestInterfaceView testInterfaceView,
+        public MainInterfaceController(
+            MainInterfaceView mainInterfaceView,
             IHydraulicErosionService hydraulicErosionService,
             INoiseGeneratorService noiseGeneratorService,
-            IPlaneSpawnerService planeSpawnerService,
             ITerrainChunkPool terrainChunkPool,
             ITerrainChunkGeneratorService terrainChunkGeneratorService,
             IGaussianBlurService gaussianBlurService,
             IHeightTextureDrawer heightTextureDrawer)
         {
-            _view = testInterfaceView;
+            _view = mainInterfaceView;
             _hydraulicErosionService = hydraulicErosionService;
             _noiseGeneratorService = noiseGeneratorService;
-            _planeSpawnerService = planeSpawnerService;
             _terrainChunkPool = terrainChunkPool;
             _terrainChunkGeneratorService = terrainChunkGeneratorService;
             _gaussianBlurService = gaussianBlurService;
@@ -50,9 +45,14 @@ namespace Services.TestInterfaceController.Impls
         public void Initialize()
         {
             _view.OnSimulateButtonPress += OnSimulateButtonPress;
+            _view.OnSimulateButtonPress += GenerateMesh;
+            
             _view.OnResetButtonPress += OnResetButtonPress;
             _view.OnSampleToPNGPress += OnSampleToPNGPress;
+            _view.OnOpenPNGFolderPress += OnOpenPNGFolderPress;
+            
             _view.OnApplyGaussianBlurPress += OnApplyGaussianBlurPress;
+            _view.OnApplyGaussianBlurPress += GenerateMesh;
 
             Selection.activeGameObject = _view.gameObject;
             
@@ -64,14 +64,21 @@ namespace Services.TestInterfaceController.Impls
             _hydraulicErosionService.SimulateErosion(
                 _view.HydraulicErosionIterationVo,
                 _currentTerrainChunk.MeshData,
-                _view.HydraulicErosionType);
-
-            if(_view.ApplyGaussianBlurAfterIterationsBlock)
-                OnApplyGaussianBlurPress();
+                _view.HydraulicErosionType,
+                iteration => 
+                    UpdateProgressBar(iteration, _view.HydraulicErosionIterationVo.IterationsCount));
             
-            _currentTerrainChunk.MeshFilter.mesh =
-                _terrainChunkGeneratorService.GenerateMeshFromMeshData(_currentTerrainChunk.MeshData);
+            if(_view.ApplyBlurAutomaticly)
+                OnApplyGaussianBlurPress();
 
+            _view.UpdatePreviewTexture(_heightTextureDrawer.GetTexture(
+                _currentTerrainChunk.MeshData.Vertices,
+                _currentTerrainChunk.MeshData.Resolution));
+        }
+
+        private void UpdateProgressBar(int currentIteration, int iterationsCount)
+        {
+            _view.SetupProgressBar(true, currentIteration, iterationsCount);
         }
 
         private void OnResetButtonPress()
@@ -83,6 +90,9 @@ namespace Services.TestInterfaceController.Impls
             }
 
             _currentTerrainChunk = _terrainChunkGeneratorService.GenerateTerrainChunk(256, 10);
+            _view.UpdatePreviewTexture(_heightTextureDrawer.GetTexture(
+                _currentTerrainChunk.MeshData.Vertices,
+                _currentTerrainChunk.MeshData.Resolution));
         }
 
         private void OnSampleToPNGPress()
@@ -94,6 +104,11 @@ namespace Services.TestInterfaceController.Impls
                 _currentTerrainChunk.MeshData.Resolution);
         }
 
+        private void OnOpenPNGFolderPress()
+        {
+            Process.Start("explorer.exe", "C:\\Users\\Vintall\\Desktop\\Maps\\");
+        }
+
         private void OnApplyGaussianBlurPress()
         {
             if(_currentTerrainChunk == null)
@@ -102,6 +117,12 @@ namespace Services.TestInterfaceController.Impls
             _gaussianBlurService.ApplyGaussianBlur(
                 ref _currentTerrainChunk.MeshData.Vertices, 
                 _currentTerrainChunk.MeshData.Resolution);
+        }
+
+        private void GenerateMesh()
+        {
+            _currentTerrainChunk.MeshFilter.mesh =
+                _terrainChunkGeneratorService.GenerateMeshFromMeshData(_currentTerrainChunk.MeshData);
         }
     }
 }

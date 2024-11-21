@@ -57,6 +57,37 @@ namespace Services.HeightTextureDrawer.Impls
             File.WriteAllBytes(path, texture2D.EncodeToPNG());
         }
 
+        public Texture2D GetTexture(float[][] heightMap, int resolution)
+        {
+            var texture2D = new Texture2D(resolution, resolution);
+
+            NormalizeHeightMap(ref heightMap, resolution);
+            
+            for (var z = 0; z < resolution; ++z)
+            for (var x = 0; x < resolution; ++x)
+            {
+                var finalColor = Color.Lerp(_heightTextureDrawerStyleDatabase.LowerColor, _heightTextureDrawerStyleDatabase.HigherColor, heightMap[z][x]);
+                texture2D.SetPixel(x, z, finalColor);
+            }
+
+            return texture2D;
+        }
+
+        public Texture2D GetTexture(Vector3[][] vertices, int resolution)
+        {
+            var heightMap = new float[resolution][];
+
+            for (var z = 0; z < resolution; ++z)
+            {
+                heightMap[z] = new float[resolution];
+                
+                for (var x = 0; x < resolution; ++x)
+                    heightMap[z][x] = vertices[z][x].y;
+            }
+
+            return GetTexture(heightMap, resolution);
+        }
+
         private void NormalizeHeightMap(ref float[][] heightMap, int resolution)
         {
             var minHeight = heightMap[0][0];

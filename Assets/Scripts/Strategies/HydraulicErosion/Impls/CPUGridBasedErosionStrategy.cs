@@ -1,4 +1,5 @@
-﻿using Enums;
+﻿using System;
+using Enums;
 using Models;
 using UnityEngine;
 
@@ -17,7 +18,8 @@ namespace Strategies.HydraulicErosion.Impls
             public float sediment;
         }
         
-        public void Execute(HydraulicErosionIterationVo iterationData, MeshDataVo meshDataVo)
+        public void Execute(HydraulicErosionIterationVo iterationData, 
+            MeshDataVo meshDataVo, Action<int> iterationTimestamp)
         {
             var verticesStates = new VertexState[meshDataVo.Resolution][];
             var deltaVerticesStates = new VertexState[meshDataVo.Resolution][];
@@ -99,9 +101,9 @@ namespace Strategies.HydraulicErosion.Impls
                         meshDataVo.Vertices[x][y].y = verticesStates[x][y].height;
                     }
                 }
+                
+                //iterationTimestamp.Invoke(i);
             }
-            
-            
         }
 
         private void GatherOutflowData(

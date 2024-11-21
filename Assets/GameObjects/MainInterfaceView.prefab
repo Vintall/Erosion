@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4879578333151508921}
   - component: {fileID: 6252304857584799114}
   m_Layer: 0
-  m_Name: TestInterfaceView
+  m_Name: MainInterfaceView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,10 +45,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hydraulicErosionIterationVo:
+    IterationsCount: 5
     ErosionRate: 0.1
     DepositionRate: 0.1
     EvaporationRate: 0.1
     MinSlope: 0.1
     SedimentCarryingCapacity: 0.1
     SoilSoftness: 0.1
-  iterations: 1
+  hydraulicErosionType: 0
+  applyGaussianBlurAfterIterationsBlock: 0

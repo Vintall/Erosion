@@ -1,4 +1,5 @@
-﻿using Enums;
+﻿using System;
+using Enums;
 using Models;
 
 namespace Strategies.HydraulicErosion
@@ -6,6 +7,7 @@ namespace Strategies.HydraulicErosion
     public interface IHydraulicErosionStrategy
     {
         EHydraulicErosionType HydraulicErosionType { get; }
-        void Execute(HydraulicErosionIterationVo iterationData, MeshDataVo meshDataVo);
+        void Execute(HydraulicErosionIterationVo iterationData, 
+            MeshDataVo meshDataVo, Action<int> iterationTimestamp);
     }
 }

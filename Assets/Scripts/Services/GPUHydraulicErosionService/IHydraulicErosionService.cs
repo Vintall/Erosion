@@ -1,6 +1,6 @@
-﻿using Enums;
+﻿using System;
+using Enums;
 using Models;
-using UnityEngine;
 
 namespace Services.GPUHydraulicErosionService
 {
@@ -9,6 +9,7 @@ namespace Services.GPUHydraulicErosionService
         void SimulateErosion(
             HydraulicErosionIterationVo iterationData, 
             MeshDataVo meshDataVo,
-            EHydraulicErosionType hydraulicErosionType);
+            EHydraulicErosionType hydraulicErosionType,
+            Action<int> iterationTimestamp);
     }
 }
