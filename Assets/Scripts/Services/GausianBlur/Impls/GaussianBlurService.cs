@@ -1,27 +1,24 @@
-﻿using UnityEngine;
+﻿using Databases.GaussianBlur;
+using UnityEngine;
 using Zenject;
 
 namespace Services.GausianBlur.Impls
 {
-    public class GaussianBlurService : IGaussianBlurService, IInitializable
+    public class GaussianBlurService : IGaussianBlurService
     {
-        private float centerModifier;
-        private float adjacentModifier;
-        private float diagonalModifier;
+        private readonly IGaussianBlurDatabase _gaussianBlurDatabase;
         
-        public GaussianBlurService() { }
-
-        public void Initialize()
+        public GaussianBlurService(
+            IGaussianBlurDatabase gaussianBlurDatabase)
         {
-            centerModifier = 0.6f; // TODO replace to GaussianBlurDatabase
-            adjacentModifier = 0.075f;
-            diagonalModifier = 0.025f;
+            _gaussianBlurDatabase = gaussianBlurDatabase;
         }
-        
+
         public void ApplyGaussianBlur(ref Vector3[][] heightMap, int resolution)
         {
             var newHeightMap = new Vector3[resolution][];
-
+            var blurModifiers = _gaussianBlurDatabase.DefaultGaussianBlurVo;
+            
             for (var z = 0; z < resolution; ++z)
             {
                 newHeightMap[z] = new Vector3[resolution];
@@ -35,15 +32,15 @@ namespace Services.GausianBlur.Impls
                 for (var x = 1; x < resolution - 1; ++x)
                 {
                     var bluredValue =
-                        heightMap[z][x].y * centerModifier +
-                        heightMap[z][x + 1].y * adjacentModifier +
-                        heightMap[z + 1][x].y * adjacentModifier +
-                        heightMap[z][x - 1].y * adjacentModifier +
-                        heightMap[z - 1][x].y * adjacentModifier +
-                        heightMap[z + 1][x + 1].y * diagonalModifier +
-                        heightMap[z + 1][x - 1].y * diagonalModifier +
-                        heightMap[z - 1][x + 1].y * diagonalModifier +
-                        heightMap[z - 1][x - 1].y * diagonalModifier;
+                        heightMap[z][x].y * blurModifiers.CenterModifier +
+                        heightMap[z][x + 1].y * blurModifiers.AdjacentModifier +
+                        heightMap[z + 1][x].y * blurModifiers.AdjacentModifier +
+                        heightMap[z][x - 1].y * blurModifiers.AdjacentModifier +
+                        heightMap[z - 1][x].y * blurModifiers.AdjacentModifier +
+                        heightMap[z + 1][x + 1].y * blurModifiers.DiagonalModifier +
+                        heightMap[z + 1][x - 1].y * blurModifiers.DiagonalModifier +
+                        heightMap[z - 1][x + 1].y * blurModifiers.DiagonalModifier +
+                        heightMap[z - 1][x - 1].y * blurModifiers.DiagonalModifier;
 
                     newHeightMap[z][x] = new Vector3(heightMap[z][x].x, bluredValue, heightMap[z][x].z);
                 }

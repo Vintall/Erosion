@@ -1,5 +1,6 @@
 ﻿using System;
 using Databases.CommonShadersDatabase;
+using Databases.GaussianBlur;
 using Enums;
 using Models;
 using UnityEngine;
@@ -20,13 +21,16 @@ namespace Strategies.HydraulicErosion.Impls
         private static readonly int SoilSoftnessPropertyId = Shader.PropertyToID("soilSoftness");
         private static readonly int SedimentCarryingCapacityPropertyId = Shader.PropertyToID("sedimentCarryingCapacity");
         private readonly ICommonShadersDatabase _commonShadersDatabase;
-        
+        private readonly IGaussianBlurDatabase _gaussianBlurDatabase;
+
         public EHydraulicErosionType HydraulicErosionType => EHydraulicErosionType.GridGPU;
 
         public GPUGridBasedErosionStrategy(
-            ICommonShadersDatabase commonShadersDatabase)
+            ICommonShadersDatabase commonShadersDatabase,
+            IGaussianBlurDatabase gaussianBlurDatabase)
         {
             _commonShadersDatabase = commonShadersDatabase;
+            _gaussianBlurDatabase = gaussianBlurDatabase;
         }
         
         struct VertexState
@@ -64,9 +68,9 @@ namespace Strategies.HydraulicErosion.Impls
             erosionShader.SetFloat(DepositionRatePropertyId, iterationData.DepositionRate);
             erosionShader.SetFloat(EvaporationRatePropertyId, iterationData.EvaporationRate);
             erosionShader.SetFloat(MinSlopePropertyId, iterationData.MinSlope);
-            erosionShader.SetFloat(Shader.PropertyToID("blurCenterModifier"), 0.6f);
-            erosionShader.SetFloat(Shader.PropertyToID("blurAdjacentModifier"), 0.075f);
-            erosionShader.SetFloat(Shader.PropertyToID("blurDiagonalModifier"), 0.025f);
+            erosionShader.SetFloat(Shader.PropertyToID("blurCenterModifier"), _gaussianBlurDatabase.GPUGaussianBlurVo.CenterModifier);
+            erosionShader.SetFloat(Shader.PropertyToID("blurAdjacentModifier"), _gaussianBlurDatabase.GPUGaussianBlurVo.AdjacentModifier);
+            erosionShader.SetFloat(Shader.PropertyToID("blurDiagonalModifier"), _gaussianBlurDatabase.GPUGaussianBlurVo.DiagonalModifier);
             
             inVertexStatesBuffer.SetData(verticesStates);
             outVertexStatesBuffer.SetData(verticesStates);

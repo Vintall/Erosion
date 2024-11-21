@@ -70,6 +70,8 @@ namespace Services.HeightTextureDrawer.Impls
                 texture2D.SetPixel(x, z, finalColor);
             }
 
+            texture2D.Apply();
+            
             return texture2D;
         }
 
@@ -94,7 +96,7 @@ namespace Services.HeightTextureDrawer.Impls
             var maxHeight = heightMap[0][0];
             
             for (var z = 0; z < resolution; ++z)
-            for (var x = 1; x < resolution; ++x)
+            for (var x = 0; x < resolution; ++x)
             {
                 if (heightMap[z][x] < minHeight)
                     minHeight = heightMap[z][x];

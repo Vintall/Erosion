@@ -47,10 +47,18 @@ MonoBehaviour:
   hydraulicErosionIterationVo:
     IterationsCount: 5
     ErosionRate: 0.1
-    DepositionRate: 0.1
+    DepositionRate: 0.3
     EvaporationRate: 0.1
     MinSlope: 0.1
-    SedimentCarryingCapacity: 0.1
-    SoilSoftness: 0.1
-  hydraulicErosionType: 0
-  applyGaussianBlurAfterIterationsBlock: 0
+    SedimentCarryingCapacity: 0.3
+    SoilSoftness: 0.3
+  gaussianBlurVo:
+    centerModifier: 0
+    adjacentModifier: 0
+    diagonalModifier: 0
+  hydraulicErosionType: 3
+  applyBlurAutomaticly: 0
+  terrainResolution: 256
+  terrainSize: 50
+  previewTextureSize: 247
+  terrainOffset: 0

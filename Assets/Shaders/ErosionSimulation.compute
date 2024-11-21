@@ -154,6 +154,7 @@ void CalculateDifferences(uint3 id : SV_DispatchThreadID)
 void ApplyDifferences(uint3 id : SV_DispatchThreadID)
 {
     int2 position = int2(id.xy);
+    float2 uv = float2((float)position.x / mapWidth, (float)position.y / mapHeight);
 
     inVertexStates[position.y * mapWidth + position.x] =
         outVertexStates[position.y * mapWidth + position.x];

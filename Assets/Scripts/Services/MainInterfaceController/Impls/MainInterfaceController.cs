@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Timers;
 using MonoBehavior;
 using Pools.PlanePool;
 using Services.GausianBlur;
@@ -9,6 +10,7 @@ using Services.PlaneGeneration;
 using Services.TestInterfaceController;
 using UnityEditor;
 using Zenject;
+using Debug = UnityEngine.Debug;
 
 namespace Services.MainInterfaceController.Impls
 {
@@ -61,6 +63,10 @@ namespace Services.MainInterfaceController.Impls
 
         private void OnSimulateButtonPress()
         {
+            Stopwatch stopwatch = new Stopwatch();
+            
+            stopwatch.Start();
+            
             _hydraulicErosionService.SimulateErosion(
                 _view.HydraulicErosionIterationVo,
                 _currentTerrainChunk.MeshData,
@@ -68,12 +74,23 @@ namespace Services.MainInterfaceController.Impls
                 iteration => 
                     UpdateProgressBar(iteration, _view.HydraulicErosionIterationVo.IterationsCount));
             
+            stopwatch.Stop();
+
+            Debug.Log($"Execution time ms: {stopwatch.ElapsedMilliseconds}ms\n" +
+                      $"Execution time s: {stopwatch.ElapsedMilliseconds / 1000f}s\n" +
+                      $"Iterations count: {_view.HydraulicErosionIterationVo.IterationsCount}\n" +
+                      $"Mode: {_view.HydraulicErosionType}\n" +
+                      $"Iterations per second: {_view.HydraulicErosionIterationVo.IterationsCount / (stopwatch.ElapsedMilliseconds / 1000f)}\n" +
+                      $"Iterations per millisecond: {_view.HydraulicErosionIterationVo.IterationsCount / (stopwatch.ElapsedMilliseconds)}");
+            
             if(_view.ApplyBlurAutomaticly)
                 OnApplyGaussianBlurPress();
 
-            _view.UpdatePreviewTexture(_heightTextureDrawer.GetTexture(
+            var previewTexture = _heightTextureDrawer.GetTexture(
                 _currentTerrainChunk.MeshData.Vertices,
-                _currentTerrainChunk.MeshData.Resolution));
+                _currentTerrainChunk.MeshData.Resolution);
+            
+            _view.UpdatePreviewTexture(previewTexture);
         }
 
         private void UpdateProgressBar(int currentIteration, int iterationsCount)
@@ -89,7 +106,8 @@ namespace Services.MainInterfaceController.Impls
                 _currentTerrainChunk = null;
             }
 
-            _currentTerrainChunk = _terrainChunkGeneratorService.GenerateTerrainChunk(256, 10);
+            _currentTerrainChunk =
+                _terrainChunkGeneratorService.GenerateTerrainChunk(_view.TerrainResolution, _view.TerrainSize);
             _view.UpdatePreviewTexture(_heightTextureDrawer.GetTexture(
                 _currentTerrainChunk.MeshData.Vertices,
                 _currentTerrainChunk.MeshData.Resolution));
@@ -117,6 +135,12 @@ namespace Services.MainInterfaceController.Impls
             _gaussianBlurService.ApplyGaussianBlur(
                 ref _currentTerrainChunk.MeshData.Vertices, 
                 _currentTerrainChunk.MeshData.Resolution);
+            
+            var previewTexture = _heightTextureDrawer.GetTexture(
+                _currentTerrainChunk.MeshData.Vertices,
+                _currentTerrainChunk.MeshData.Resolution);
+            
+            _view.UpdatePreviewTexture(previewTexture);
         }
 
         private void GenerateMesh()

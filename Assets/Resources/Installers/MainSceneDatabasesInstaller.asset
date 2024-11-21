@@ -16,5 +16,5 @@ MonoBehaviour:
     type: 2}
   commonShadersDatabase: {fileID: 11400000, guid: 975cdcb725f2ee74d9b501ca996b40cd,
     type: 2}
-  planeSpawner: {fileID: 6411661527673190948, guid: 9010504d6caec364d915e667304f25e0,
-    type: 3}
+  gaussianBlurDatabase: {fileID: 11400000, guid: 42310aaee4ca0504eb813e140db99bc5,
+    type: 2}
