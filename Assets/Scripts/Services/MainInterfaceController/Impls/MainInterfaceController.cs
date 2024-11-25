@@ -81,7 +81,7 @@ namespace Services.MainInterfaceController.Impls
                       $"Iterations count: {_view.HydraulicErosionIterationVo.IterationsCount}\n" +
                       $"Mode: {_view.HydraulicErosionType}\n" +
                       $"Iterations per second: {_view.HydraulicErosionIterationVo.IterationsCount / (stopwatch.ElapsedMilliseconds / 1000f)}\n" +
-                      $"Iterations per millisecond: {_view.HydraulicErosionIterationVo.IterationsCount / (stopwatch.ElapsedMilliseconds)}");
+                      $"Iterations per millisecond: {_view.HydraulicErosionIterationVo.IterationsCount / (float)stopwatch.ElapsedMilliseconds}");
             
             if(_view.ApplyBlurAutomaticly)
                 OnApplyGaussianBlurPress();

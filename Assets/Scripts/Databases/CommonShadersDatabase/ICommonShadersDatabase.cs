@@ -4,6 +4,7 @@ namespace Databases.CommonShadersDatabase
 {
     public interface ICommonShadersDatabase
     {
-        ComputeShader HydraulicErosionComputeShader { get; }
+        ComputeShader GridBasedHydraulicErosionComputeShader { get; }
+        ComputeShader ParticleBasedHydraulicErosionComputeShader { get; }
     }
 }

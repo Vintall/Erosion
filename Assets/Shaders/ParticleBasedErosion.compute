@@ -1,0 +1,215 @@
+#pragma kernel CalculateDifferences
+#pragma kernel ApplyDifferences
+#pragma kernel GaussianBlur
+
+struct Droplet
+{
+    float2 position;
+    float2 velocity;
+    float water;
+    float sediment;
+};
+
+struct PathPoint
+{
+    int vertexPosition;
+    float heightDifference;
+    int isActive;
+};
+
+RWStructuredBuffer<float3> inVertices;
+RWStructuredBuffer<PathPoint> pathPoints;
+
+int randomSeed;
+int pathPointsPerThread;
+int mapWidth;
+int mapHeight;
+float depositionRate;
+float evaporationRate;
+float blurCenterModifier;
+float blurAdjacentModifier;
+float blurDiagonalModifier;
+
+int GridToSeqPos(int2 pos)
+{
+    return pos.y * mapWidth + pos.x;
+}
+
+bool IsInBounds(int2 pos)
+{
+    return pos.x >= 0 && pos.y >= 0 && pos.x < mapWidth && pos.y < mapHeight;
+}
+
+float3 GetSurfaceNormal(int2 flooredPosition, float2 particlePosition)
+{
+    float3 squareGrid[4];
+    squareGrid[0] = inVertices[flooredPosition.y * mapWidth + flooredPosition.x];
+    squareGrid[1] = inVertices[(flooredPosition.y + 1) * mapWidth + flooredPosition.x];
+    squareGrid[2] = inVertices[flooredPosition.y * mapWidth + flooredPosition.x + 1];
+    squareGrid[3] = inVertices[(flooredPosition.y + 1)  * mapWidth + flooredPosition.x + 1];
+    
+    float distanceToFloor = distance(flooredPosition, particlePosition);
+    float distanceToCeil = distance(float2(squareGrid[3].x, squareGrid[3].z), particlePosition);
+
+    bool closerToFloor = distanceToFloor < distanceToCeil;
+    bool closerToCeil = distanceToFloor > distanceToCeil;
+    bool onDiagonal = distanceToFloor == distanceToCeil;
+
+    float3 closerToFloorResult = normalize(cross(squareGrid[1] - squareGrid[0], squareGrid[2] - squareGrid[0]));
+    float3 closerToCeilResult = normalize(cross(squareGrid[2] - squareGrid[3], squareGrid[1] - squareGrid[3]));
+    float3 diagonalResult = normalize((squareGrid[2] + squareGrid[1] - squareGrid[0] - squareGrid[3]) / 2);
+
+    bool isDiagonalPointDown = diagonalResult.y < 0;
+    
+    diagonalResult = diagonalResult * !isDiagonalPointDown + diagonalResult * isDiagonalPointDown * -1;
+    
+    float3 noneDiagonalResult = closerToFloor * closerToFloorResult + closerToCeil * closerToCeilResult;
+    float3 result = onDiagonal * diagonalResult + !onDiagonal * noneDiagonalResult;
+    
+    return result;
+}
+
+float fract(float x)
+{
+    return x - floor(x);
+}
+
+float2 fract(float2 x)
+{
+    return x - floor(x);
+}
+
+float3 fract(float3 x)
+{
+    return x - floor(x);
+}
+
+float hash13(float3 p3)
+{
+    p3  = fract(p3 * .1031);
+    p3 += dot(p3, p3.zyx + 31.32);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+float2 hash23(float3 p3)
+{
+    p3 = fract(p3 * float3(.1031, .1030, .0973));
+    p3 += dot(p3, p3.yzx+33.33);
+    return fract((p3.xx+p3.yz)*p3.zy);
+}
+
+[numthreads(8, 8, 1)]
+void CalculateDifferences (uint3 id : SV_DispatchThreadID)
+{
+    int2 position = int2(id.xy);
+
+    int seqPosition = GridToSeqPos(id.xy);
+    int pathStartPosition = seqPosition * pathPointsPerThread;
+    float2 uv = float2(id.xy) / float2(mapWidth, mapHeight);
+    float2 randomPos = hash23(float3(uv, randomSeed)) * float2(mapWidth, mapHeight) % float2(mapWidth,mapHeight);
+    Droplet droplet;
+    float friction = 0.1f;
+
+    randomPos = position;
+    
+    droplet.velocity = 0;
+    droplet.sediment = 0;
+    droplet.position = randomPos;
+    droplet.water = 1;
+    
+    for(int i = pathStartPosition; i < pathStartPosition + pathPointsPerThread; ++i)
+    {
+        int2 flooredPosition = floor(droplet.position);
+    
+        if(!IsInBounds(flooredPosition))
+            return;
+    
+        float3 acceleration = GetSurfaceNormal(flooredPosition, droplet.position);
+        droplet.velocity += float2(acceleration.xz); //F = ma, so a = F/m
+        droplet.position += droplet.velocity;
+        droplet.velocity *= 1.0f - friction; //Friction Factor
+
+        if(!IsInBounds(int2(droplet.position.x, droplet.position.y)))
+            return;
+        
+        float heightDifference = inVertices[GridToSeqPos(int2(flooredPosition.x, flooredPosition.y))].y -
+                                           inVertices[GridToSeqPos(int2(droplet.position.x, droplet.position.y))].y;
+
+        if (heightDifference < 0)
+            heightDifference = 0;
+
+        float maxsediment = droplet.water * length(droplet.velocity) * heightDifference;
+    
+        if (maxsediment < 0.0)
+            maxsediment = 0;
+
+        float sdiff = maxsediment - droplet.sediment;
+
+        droplet.sediment += depositionRate * sdiff;
+        
+        float result = min(droplet.water * depositionRate * sdiff, depositionRate * heightDifference);
+
+        pathPoints[i].heightDifference -= result;
+        pathPoints[i].vertexPosition = GridToSeqPos(int2(droplet.position.x, droplet.position.y));
+        pathPoints[i].isActive = 1;
+
+        int2 eligiblePositions[8];
+        int eligiblePositionsCount = 0;
+        
+        for (int x = -1; x <= 1; ++x)
+            for (int y = -1; y <= 1; ++y)
+            {
+                if (x == 0 && y == 0)
+                    continue;
+        
+                int xx = x + flooredPosition.x;
+                int yy = y + flooredPosition.y;
+        
+                if (IsInBounds(int2(xx, yy)))
+                {
+                    eligiblePositions[3 * x + y + 4] = int2(xx, yy);
+                    ++eligiblePositionsCount;
+                }
+            }
+        
+        for (int ii = 0; ii < eligiblePositionsCount; ++ii)
+            pathPoints[i].heightDifference += result / eligiblePositionsCount;
+
+        droplet.water *= 1.0f - evaporationRate;
+    }
+}
+
+[numthreads(8, 8, 1)]
+void ApplyDifferences(uint3 id : SV_DispatchThreadID)
+{
+    int2 position = int2(id.xy);
+    int seqPosition = GridToSeqPos(id.xy);
+    
+    for(int i = 0; i < pathPointsPerThread * mapWidth * mapHeight; ++i)
+    {
+        inVertices[position.y * mapWidth + position.x].y += pathPoints[i].heightDifference * pathPoints[i].vertexPosition == seqPosition;
+    }
+}
+
+[numthreads(8, 8, 1)]
+void GaussianBlur(uint3 id : SV_DispatchThreadID)
+{
+    int2 position = int2(id.xy);
+
+    if(position.x == 0 || position.x == mapWidth - 1)
+        return;
+
+    if(position.y == 0 || position.y == mapHeight - 1)
+        return;
+
+    inVertices[position.y * mapWidth + position.x].y = 
+                        inVertices[position.y * mapWidth + position.x].y * blurCenterModifier +
+                        inVertices[position.y * mapWidth + position.x + 1].y * blurAdjacentModifier +
+                        inVertices[(position.y + 1) * mapWidth + position.x].y * blurAdjacentModifier +
+                        inVertices[position.y * mapWidth + position.x - 1].y * blurAdjacentModifier +
+                        inVertices[(position.y - 1) * mapWidth + position.x].y * blurAdjacentModifier +
+                        inVertices[(position.y + 1) * mapWidth + position.x + 1].y * blurDiagonalModifier +
+                        inVertices[(position.y + 1) * mapWidth + position.x - 1].y * blurDiagonalModifier +
+                        inVertices[(position.y - 1) * mapWidth + position.x + 1].y * blurDiagonalModifier +
+                        inVertices[(position.y - 1) * mapWidth + position.x - 1].y * blurDiagonalModifier;
+}

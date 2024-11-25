@@ -12,5 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d449cf4bd2e442f49afd4c05fa4cbeaa, type: 3}
   m_Name: CommonShadersDatabase
   m_EditorClassIdentifier: 
-  hydraulicErosionComputeShader: {fileID: 7200000, guid: 4d5d7154759dc4c4eb7fde7041d97d5b,
+  gridBasedHydraulicErosionComputeShader: {fileID: 7200000, guid: 4d5d7154759dc4c4eb7fde7041d97d5b,
+    type: 3}
+  particleBasedHydraulicErosionComputeShader: {fileID: 7200000, guid: d9b377dd0715f614b9c0b3005436ea08,
     type: 3}

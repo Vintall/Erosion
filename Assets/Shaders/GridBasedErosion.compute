@@ -39,6 +39,12 @@ bool IsInBounds(int2 pos)
     return pos.x >= 0 && pos.y >= 0 && pos.x < mapWidth && pos.y < mapHeight;
 }
 
+int GridToSeqPos(int2 pos)
+{
+    return pos.y * mapWidth + pos.x;
+}
+
+
 void NeighborInteraction(int2 currentPos, int2 neighborPos, out VertexState resultCurrent, out VertexState resultNeighbor)
 {
     VertexState currentState = GetState(currentPos);
@@ -89,9 +95,6 @@ void CalculateDifferences(uint3 id : SV_DispatchThreadID)
     int2 position = int2(id.xy);
     VertexState currentState = GetState(position);
     
-    if(!IsInBounds(position))
-        return;
-
     float heightDeltas[9];
     int heightDeltasCount = 0;
     float deltaAccumulated = 0;
@@ -142,7 +145,7 @@ void CalculateDifferences(uint3 id : SV_DispatchThreadID)
                 resultState.sediment += resultCurrent.sediment / heightDeltasCount;
                 resultState.water += resultCurrent.water / heightDeltasCount;
 
-                VertexState authenticNeighbor = GetState(neighborPos);
+                //VertexState authenticNeighbor = GetState(neighborPos);
             }
         }
     }
@@ -154,7 +157,6 @@ void CalculateDifferences(uint3 id : SV_DispatchThreadID)
 void ApplyDifferences(uint3 id : SV_DispatchThreadID)
 {
     int2 position = int2(id.xy);
-    float2 uv = float2((float)position.x / mapWidth, (float)position.y / mapHeight);
 
     inVertexStates[position.y * mapWidth + position.x] =
         outVertexStates[position.y * mapWidth + position.x];

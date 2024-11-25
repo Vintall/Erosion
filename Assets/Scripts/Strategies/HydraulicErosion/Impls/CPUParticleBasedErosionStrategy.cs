@@ -30,7 +30,7 @@ namespace Strategies.HydraulicErosion.Impls
         public struct Droplet
         {
             public Vector3 Position;
-            public Vector3 Speed;
+            public Vector3 Velocity;
             public float WaterVolume;
             public float SedimentConcentration;
             public float SedimentCapacity;
@@ -44,7 +44,7 @@ namespace Strategies.HydraulicErosion.Impls
             var droplet = new Droplet()
             {
                 Position = new Vector3(currentPosition.x, 0, currentPosition.y),
-                Speed = Vector3.zero,
+                Velocity = Vector3.zero,
                 WaterVolume = 1,
                 SedimentConcentration = 0
             };
@@ -65,9 +65,9 @@ namespace Strategies.HydraulicErosion.Impls
 
                 //Accelerate particle using newtonian mechanics using the surface normal.
                 var acceleration = normal;
-                droplet.Speed += acceleration; //F = ma, so a = F/m
-                droplet.Position += droplet.Speed;
-                droplet.Speed *= 1.0f - friction; //Friction Factor
+                droplet.Velocity += acceleration; //F = ma, so a = F/m
+                droplet.Position += droplet.Velocity;
+                droplet.Velocity *= 1.0f - friction; //Friction Factor
 
                 if (droplet.Position.x < 0 ||
                     droplet.Position.x > resolution - 1 ||
@@ -82,7 +82,7 @@ namespace Strategies.HydraulicErosion.Impls
                 if (heightDifference < 0)
                     heightDifference = 0;
 
-                var maxsediment = droplet.WaterVolume * droplet.Speed.magnitude * heightDifference;
+                var maxsediment = droplet.WaterVolume * droplet.Velocity.magnitude * heightDifference;
 
 
                 if (maxsediment < 0.0)
@@ -92,10 +92,10 @@ namespace Strategies.HydraulicErosion.Impls
 
                 droplet.SedimentConcentration += iterationData.DepositionRate * sdiff;
 
-                var resultVector = Vector3.up * Mathf.Min(
+                var result = Mathf.Min(
                     droplet.WaterVolume * iterationData.DepositionRate * sdiff, heightDifference);
 
-                heightMap[flooredPosition.y][flooredPosition.x] -= resultVector;
+                heightMap[flooredPosition.y][flooredPosition.x].y -= result;
 
                 var eligiblePositions = new List<Vector2Int>(8);
 
@@ -115,7 +115,7 @@ namespace Strategies.HydraulicErosion.Impls
                 var eligiblePositionsCount = eligiblePositions.Count;
 
                 for (var i = 0; i < eligiblePositionsCount; ++i)
-                    heightMap[eligiblePositions[i].x][eligiblePositions[i].y] += resultVector / eligiblePositionsCount;
+                    heightMap[eligiblePositions[i].x][eligiblePositions[i].y].y += result / eligiblePositionsCount;
 
                 droplet.WaterVolume *= (1.0f - iterationData.EvaporationRate);
 
