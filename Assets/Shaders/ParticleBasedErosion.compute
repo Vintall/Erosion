@@ -13,7 +13,15 @@ struct Droplet
 struct PathPoint
 {
     int vertexPosition;
-    float heightDifference;
+    float ULHeightDelta;
+    float UCHeightDelta;
+    float URHeightDelta;
+    float MLHeightDelta;
+    float MCHeightDelta;
+    float MRHeightDelta;
+    float BLHeightDelta;
+    float BCHeightDelta;
+    float BRHeightDelta;
     int isActive;
 };
 
@@ -149,7 +157,7 @@ void CalculateDifferences (uint3 id : SV_DispatchThreadID)
         
         float result = min(droplet.water * depositionRate * sdiff, depositionRate * heightDifference);
 
-        pathPoints[i].heightDifference -= result;
+        pathPoints[i].MCHeightDelta -= result;
         pathPoints[i].vertexPosition = GridToSeqPos(int2(droplet.position.x, droplet.position.y));
         pathPoints[i].isActive = 1;
 
@@ -171,10 +179,49 @@ void CalculateDifferences (uint3 id : SV_DispatchThreadID)
                     ++eligiblePositionsCount;
                 }
             }
-        
-        for (int ii = 0; ii < eligiblePositionsCount; ++ii)
-            pathPoints[i].heightDifference += result / eligiblePositionsCount;
 
+        int neighborPos;
+        
+        neighborPos = flooredPosition + int2(-1, -1);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].ULHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(0, -1);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].UCHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(1, -1);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].URHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(-1, 0);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].MLHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(1, 0);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].MRHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(-1, 1);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].BLHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(0, 1);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].BCHeightDelta += result / eligiblePositionsCount;
+        
+        neighborPos = flooredPosition + int2(1, 1);
+        
+        if(IsInBounds(neighborPos))
+            pathPoints[i].BRHeightDelta += result / eligiblePositionsCount;
+        
         droplet.water *= 1.0f - evaporationRate;
     }
 }
@@ -185,10 +232,6 @@ void ApplyDifferences(uint3 id : SV_DispatchThreadID)
     int2 position = int2(id.xy);
     int seqPosition = GridToSeqPos(id.xy);
     
-    for(int i = 0; i < pathPointsPerThread * mapWidth * mapHeight; ++i)
-    {
-        inVertices[position.y * mapWidth + position.x].y += pathPoints[i].heightDifference * pathPoints[i].vertexPosition == seqPosition;
-    }
 }
 
 [numthreads(8, 8, 1)]

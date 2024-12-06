@@ -1,6 +1,7 @@
 #pragma kernel CalculateDifferences
 #pragma kernel ApplyDifferences
 #pragma kernel GaussianBlur
+#define ThreadGroups 16
 
 struct VertexState
 {
@@ -89,7 +90,7 @@ void NeighborInteraction(int2 currentPos, int2 neighborPos, out VertexState resu
     resultNeighbor = neighborState;
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(ThreadGroups, ThreadGroups, 1)]
 void CalculateDifferences(uint3 id : SV_DispatchThreadID)
 {
     int2 position = int2(id.xy);
@@ -153,7 +154,7 @@ void CalculateDifferences(uint3 id : SV_DispatchThreadID)
     SetState(position, resultState);
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(ThreadGroups, ThreadGroups, 1)]
 void ApplyDifferences(uint3 id : SV_DispatchThreadID)
 {
     int2 position = int2(id.xy);
@@ -162,7 +163,7 @@ void ApplyDifferences(uint3 id : SV_DispatchThreadID)
         outVertexStates[position.y * mapWidth + position.x];
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(ThreadGroups, ThreadGroups, 1)]
 void GaussianBlur(uint3 id : SV_DispatchThreadID)
 {
     int2 position = int2(id.xy);

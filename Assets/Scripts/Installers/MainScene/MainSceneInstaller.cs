@@ -15,13 +15,12 @@ namespace Installers.MainScene
     {
         public override void InstallBindings()
         {
+            BindHydraulicErosionStrategies();
             BindServices();
         }
 
         private void BindServices()
         {
-            BindHydraulicErosionStrategies();
-            
             BindService<MeshDataGeneratorService>();
             BindService<GaussianBlurService>();
             BindService<PerlinNoiseGeneratorService>();
@@ -31,10 +30,8 @@ namespace Installers.MainScene
             BindService<TerrainChunkGeneratorService>();
         }
 
-        private void BindService<T>()
-        {
+        private void BindService<T>() => 
             Container.BindInterfacesTo<T>().AsSingle();
-        }
 
         private void BindHydraulicErosionStrategies()
         {
@@ -45,9 +42,7 @@ namespace Installers.MainScene
             BindErosionStrategy<SnowballCPUErosionStrategy>();
         }
 
-        private void BindErosionStrategy<T>() where T : IHydraulicErosionStrategy
-        {
+        private void BindErosionStrategy<T>() where T : IHydraulicErosionStrategy => 
             Container.Bind<IHydraulicErosionStrategy>().To<T>().AsCached();
-        }
     }
 }

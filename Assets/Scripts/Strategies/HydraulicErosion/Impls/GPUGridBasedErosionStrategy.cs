@@ -78,6 +78,8 @@ namespace Strategies.HydraulicErosion.Impls
             erosionShader.SetBuffer(1, OutVertexStatesPropertyId, outVertexStatesBuffer);
             erosionShader.SetBuffer(2, InVertexStatesPropertyId, inVertexStatesBuffer);
             erosionShader.SetBuffer(2, OutVertexStatesPropertyId, outVertexStatesBuffer);
+
+            var threadGroups = 16;
             
             for (var l = 0; l < iterationData.IterationsCount; ++l)
             {
@@ -94,12 +96,12 @@ namespace Strategies.HydraulicErosion.Impls
 
                 for (var k = 0; k < 20; ++k)
                 {
-                    erosionShader.Dispatch(0, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
-                    erosionShader.Dispatch(1, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
+                    erosionShader.Dispatch(0, meshDataVo.Resolution / threadGroups, meshDataVo.Resolution / threadGroups, 1);
+                    erosionShader.Dispatch(1, meshDataVo.Resolution / threadGroups, meshDataVo.Resolution / threadGroups, 1);
                 }
 
                 if (l % 4 == 0)
-                    erosionShader.Dispatch(2, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
+                    erosionShader.Dispatch(2, meshDataVo.Resolution / threadGroups, meshDataVo.Resolution / threadGroups, 1);
             }
             
             

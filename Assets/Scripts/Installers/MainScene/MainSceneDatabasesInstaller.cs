@@ -23,9 +23,7 @@ namespace Installers.MainScene
             BindDatabase<IGaussianBlurDatabase>(gaussianBlurDatabase);
         }
 
-        private void BindDatabase<T1>(T1 instance)
-        {
+        private void BindDatabase<T1>(T1 instance) => 
             Container.Bind<T1>().FromInstance(instance).AsSingle();
-        }
     }
 }

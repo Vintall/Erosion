@@ -3,6 +3,7 @@ using Databases.CommonShadersDatabase;
 using Databases.GaussianBlur;
 using Enums;
 using Models;
+using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -36,7 +37,15 @@ namespace Strategies.HydraulicErosion.Impls
         private struct PathPoint
         {
             public int vertexPosition;
-            public float heightDifference;
+            public float ULHeightDelta;
+            public float UCHeightDelta;
+            public float URHeightDelta;
+            public float MLHeightDelta;
+            public float MCHeightDelta;
+            public float MRHeightDelta;
+            public float BLHeightDelta;
+            public float BCHeightDelta;
+            public float BRHeightDelta;
             public int isActive;
         }
         
@@ -44,19 +53,21 @@ namespace Strategies.HydraulicErosion.Impls
             MeshDataVo meshDataVo, Action<int> iterationTimestamp)
         {
             var erosionShader = _commonShadersDatabase.ParticleBasedHydraulicErosionComputeShader;
+
+            var pathPointsPerThread = 3;
             
             var inVertices = new Vector3[meshDataVo.Resolution * meshDataVo.Resolution];
-            var pathPoints = new PathPoint[4 * meshDataVo.Resolution * meshDataVo.Resolution];
+            var pathPoints = new PathPoint[pathPointsPerThread * meshDataVo.Resolution * meshDataVo.Resolution];
             
             for (var i = 0; i < meshDataVo.Resolution; ++i)
             for (var j = 0; j < meshDataVo.Resolution; ++j)
                 inVertices[i * meshDataVo.Resolution + j] = meshDataVo.Vertices[i][j];
             
             var inVerticesBuffer = new ComputeBuffer(inVertices.Length, sizeof(float) * 3);
-            var pathPointsBuffer = new ComputeBuffer(15 * meshDataVo.Resolution * meshDataVo.Resolution, sizeof(int) + sizeof(float) + sizeof(int));
+            var pathPointsBuffer = new ComputeBuffer(pathPointsPerThread * meshDataVo.Resolution * meshDataVo.Resolution, sizeof(int) + sizeof(float) * 9 + sizeof(int));
 
             erosionShader.SetInt(Shader.PropertyToID("randomSeed"), Random.Range(1, 5000));
-            erosionShader.SetInt(Shader.PropertyToID("pathPointsPerThread"), 4);
+            erosionShader.SetInt(Shader.PropertyToID("pathPointsPerThread"), pathPointsPerThread);
             erosionShader.SetInt(MapWidthPropertyId, meshDataVo.Resolution);
             erosionShader.SetInt(MapHeightPropertyId, meshDataVo.Resolution);
             erosionShader.SetFloat(DepositionRatePropertyId, iterationData.DepositionRate);
@@ -76,20 +87,24 @@ namespace Strategies.HydraulicErosion.Impls
             erosionShader.SetBuffer(1, Shader.PropertyToID("pathPoints"), pathPointsBuffer);
             erosionShader.SetBuffer(2, Shader.PropertyToID("pathPoints"), pathPointsBuffer);
 
+            bool IsInBounds(Vector2Int pos)
+            {
+                return pos.x >= 0 &&
+                       pos.y >= 0 &&
+                       pos.x <= meshDataVo.Resolution - 1 &&
+                       pos.y <= meshDataVo.Resolution - 1;
+            }
+            
             for (var l = 0; l < iterationData.IterationsCount; ++l)
             {
                 erosionShader.Dispatch(0, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);
                 
                 pathPointsBuffer.GetData(pathPoints);
 
-                var cellsPopularity = new int[meshDataVo.Resolution * meshDataVo.Resolution];
-
-                for (var i = 0; i < pathPoints.Length; ++i)
-                {
-                    var vertexPosition = pathPoints[i].vertexPosition;
-                    
-                    ++cellsPopularity[vertexPosition];
-                }
+                var gridCellsPopulatity = new int[meshDataVo.Resolution * meshDataVo.Resolution];
+                
+                for (var i = 0; i < pathPoints.Length; ++i) 
+                    ++gridCellsPopulatity[pathPoints[i].vertexPosition];
 
                 for (var i = 0; i < pathPoints.Length; ++i)
                 {
@@ -97,18 +112,123 @@ namespace Strategies.HydraulicErosion.Impls
                     var vertex2dPosition = new Vector2Int(
                         vertexPosition / meshDataVo.Resolution,
                         vertexPosition % meshDataVo.Resolution);
-                    
-                    if(pathPoints[i].isActive == 0)
+
+                    if (pathPoints[i].isActive == 0)
                         continue;
                     
-                    if(vertex2dPosition.x == 0 || vertex2dPosition.y == 0 ||
-                       vertex2dPosition.x == meshDataVo.Resolution - 1 ||
-                       vertex2dPosition.y == meshDataVo.Resolution - 1)
-                        continue;
+                    Vector2Int neighborPos;
                     
-                    inVertices[vertexPosition].y += pathPoints[i].heightDifference / cellsPopularity[vertexPosition];
+                     neighborPos = vertex2dPosition + new Vector2Int(-1, -1);
+                    
+                     if (IsInBounds(neighborPos))
+                         inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                             pathPoints[i].ULHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                     neighborPos = vertex2dPosition + new Vector2Int(0, -1);
+                    
+                     if (IsInBounds(neighborPos))
+                         inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                             pathPoints[i].UCHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                     neighborPos = vertex2dPosition + new Vector2Int(1, -1);
+                    
+                     if (IsInBounds(neighborPos))
+                         inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                             pathPoints[i].URHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                     neighborPos = vertex2dPosition + new Vector2Int(-1, 0);
+                    
+                     if (IsInBounds(neighborPos))
+                         inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                             pathPoints[i].MLHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                    neighborPos = vertex2dPosition;
+
+                    if (IsInBounds(neighborPos))
+                        inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                            pathPoints[i].MCHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                    neighborPos = vertex2dPosition + new Vector2Int(1, 0);
+                    
+                    if (IsInBounds(neighborPos))
+                        inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                            pathPoints[i].MRHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                    neighborPos = vertex2dPosition + new Vector2Int(-1, 1);
+                    
+                    if (IsInBounds(neighborPos))
+                        inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                            pathPoints[i].BLHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                    neighborPos = vertex2dPosition + new Vector2Int(0, 1);
+                    
+                    if (IsInBounds(neighborPos))
+                        inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                            pathPoints[i].BCHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
+                    
+                    neighborPos = vertex2dPosition + new Vector2Int(1, 1);
+                    
+                    if (IsInBounds(neighborPos))
+                        inVertices[neighborPos.y * meshDataVo.Resolution + neighborPos.x].y +=
+                            pathPoints[i].BRHeightDelta / gridCellsPopulatity[pathPoints[i].vertexPosition];
                 }
-                
+
+                inVertices[0].y = inVertices[1].y;
+
+                for (var x = 0; x < meshDataVo.Resolution; ++x)
+                for (var y = 0; y < meshDataVo.Resolution; ++y)
+                {
+                    var linearPosition = y * meshDataVo.Resolution + x;
+                    
+                    if (x == 0 && y == 0)
+                    {
+                        inVertices[linearPosition] = inVertices[(y + 1) * meshDataVo.Resolution + x + 1];
+                        continue;
+                    }
+                    
+                    if (x == 0 && y == meshDataVo.Resolution - 1)
+                    {
+                        inVertices[linearPosition] = inVertices[(y - 1) * meshDataVo.Resolution + x + 1];
+                        continue;
+                    }
+                        
+                    if (x == meshDataVo.Resolution - 1 && y == 0)
+                    {
+                        inVertices[linearPosition] = inVertices[(y + 1) * meshDataVo.Resolution + x - 1];
+                        continue;
+                    }
+                    
+                    if (x == meshDataVo.Resolution - 1 && y == meshDataVo.Resolution - 1)
+                    {
+                        inVertices[linearPosition] = inVertices[(y - 1) * meshDataVo.Resolution + x - 1];
+                        continue;
+                    }
+
+                    if (x == 0)
+                    {
+                        inVertices[linearPosition] = inVertices[y * meshDataVo.Resolution + x + 1];
+                        continue;
+                    }
+
+                    if (y == 0)
+                    {
+                        inVertices[linearPosition] = inVertices[(y + 1) * meshDataVo.Resolution + x];
+                        continue;
+                    }
+                    
+                    if (x == meshDataVo.Resolution - 1)
+                    {
+                        inVertices[linearPosition] = inVertices[y * meshDataVo.Resolution + x - 1];
+                        continue;
+                    }
+
+                    if (y == meshDataVo.Resolution - 1)
+                    {
+                        inVertices[linearPosition] = inVertices[(y - 1) * meshDataVo.Resolution + x];
+                        continue;
+                    }
+                }
+
                 inVerticesBuffer.SetData(inVertices);
                 
                 //erosionShader.Dispatch(1, meshDataVo.Resolution / 8, meshDataVo.Resolution / 8, 1);

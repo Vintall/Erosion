@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 765648da36fc4df8a99426f9311509b7, type: 3}
   m_Name: HeightTextureDrawerStyleDatabase
   m_EditorClassIdentifier: 
-  lowerColor: {r: 0, g: 0, b: 0, a: 1}
-  higherColor: {r: 1, g: 1, b: 1, a: 1}
+  lowerColor: {r: 0.2830189, g: 0.2830189, b: 0.2830189, a: 1}
+  higherColor: {r: 0.5703981, g: 0.8584906, b: 0.5223834, a: 1}

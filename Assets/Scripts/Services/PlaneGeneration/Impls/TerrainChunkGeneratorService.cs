@@ -18,12 +18,6 @@ namespace Services.PlaneGeneration.Impls
         private readonly ITerrainChunkPool _terrainChunkPool;
         private readonly IMeshDataGeneratorService _meshDataGeneratorService;
 
-        [SerializeField] private List<NoiseLayerVo> noiseLayers;
-        
-        [SerializeField] private bool useErrosion;
-        [SerializeField] private bool applyGaussianBlur;
-        [SerializeField] private int iterationsCount;
-
         public TerrainChunkGeneratorService(
             ITerrainChunkPool terrainChunkPool,
             IMeshDataGeneratorService meshDataGeneratorService)
