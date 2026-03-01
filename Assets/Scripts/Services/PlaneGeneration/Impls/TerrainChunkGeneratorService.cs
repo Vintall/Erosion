@@ -8,6 +8,7 @@ using Services.GausianBlur;
 using Services.NoiseGeneration;
 using Services.HeightTextureDrawer;
 using Services.MeshDataGeneratorService;
+using Services.NoiseGeneration.Impls;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -17,13 +18,16 @@ namespace Services.PlaneGeneration.Impls
     {
         private readonly ITerrainChunkPool _terrainChunkPool;
         private readonly IMeshDataGeneratorService _meshDataGeneratorService;
+        private readonly INoiseGeneratorService _noiseGeneratorService;
 
         public TerrainChunkGeneratorService(
             ITerrainChunkPool terrainChunkPool,
-            IMeshDataGeneratorService meshDataGeneratorService)
+            IMeshDataGeneratorService meshDataGeneratorService,
+            INoiseGeneratorService noiseGeneratorService)
         {
             _terrainChunkPool = terrainChunkPool;
             _meshDataGeneratorService = meshDataGeneratorService;
+            _noiseGeneratorService = noiseGeneratorService;
         }
         
         public TerrainChunk GenerateTerrainChunk(int resolution, float size)
@@ -33,8 +37,10 @@ namespace Services.PlaneGeneration.Impls
             
             ApplyPerlin(ref meshData.Vertices, meshData.Resolution, new NoiseLayerVo[]
             {
-                new NoiseLayerVo(Vector2.one * 5, Vector2.zero, 5f),
-                new NoiseLayerVo(Vector2.one * 2, Vector2.zero, 3f)
+                //new NoiseLayerVo(Vector2.one * 5, Vector2.zero, 5f),
+                new NoiseLayerVo(Vector2.one * 5, Vector2.zero, 3f),
+                new NoiseLayerVo(Vector2.one * 2, Vector2.zero, 2f),
+                new NoiseLayerVo(Vector2.one * 1, Vector2.zero, 1f),
             });
             
             var newMesh = GenerateMeshFromMeshData(meshData);
@@ -77,11 +83,14 @@ namespace Services.PlaneGeneration.Impls
                 for (var i = 0; i < noiseLayers.Length; ++i)
                 {
                     var noiseLayer = noiseLayers[i];
-                    height += openSimplexNoise.Evaluate((point.x + noiseLayer.Displacement.x) / noiseLayer.Scale.x,
-                                  (point.z + noiseLayer.Displacement.y) / noiseLayer.Scale.y) *
-                              noiseLayer.Influence;
+
+                    height += _noiseGeneratorService.GeneratePoint(3248, (int)noiseLayer.Scale.x, point) * noiseLayer.Influence;
+                    
+                    //height += openSimplexNoise.Evaluate((point.x + noiseLayer.Displacement.x) / noiseLayer.Scale.x,
+                    //              (point.z + noiseLayer.Displacement.y) / noiseLayer.Scale.y) *
+                    //          noiseLayer.Influence;
                 }
-                point.y = (float)height;
+                point.y = (float)height * 3;
                 grid[z][x] = point;
             }
         }

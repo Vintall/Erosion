@@ -11,11 +11,6 @@ namespace Strategies.HydraulicErosion.Impls
     {
         public EHydraulicErosionType HydraulicErosionType => EHydraulicErosionType.ParticlesCPU;
 
-        public CPUParticleBasedErosionStrategy()
-        {
-            
-        }
-
         public void Execute(HydraulicErosionIterationVo iterationData,
             MeshDataVo meshDataVo, Action<int> iterationTimestamp)
         {
@@ -33,7 +28,6 @@ namespace Strategies.HydraulicErosion.Impls
             public Vector3 Velocity;
             public float WaterVolume;
             public float SedimentConcentration;
-            public float SedimentCapacity;
         }
 
         public void SimulateDroplet(

@@ -89,7 +89,7 @@ namespace Strategies.HydraulicErosion.Impls
                     
                     for (var i = 0; i < meshDataVo.Resolution; ++i)
                     for (var j = 0; j < meshDataVo.Resolution; ++j)
-                        verticesStates[i * meshDataVo.Resolution + j].water = Random.Range(0, 5f);
+                        verticesStates[i * meshDataVo.Resolution + j].water = Random.Range(0, 1f);
                     
                     inVertexStatesBuffer.SetData(verticesStates);
                 }
@@ -109,6 +109,60 @@ namespace Strategies.HydraulicErosion.Impls
             inVertexStatesBuffer.Release();
             outVertexStatesBuffer.Release();
             
+            for (var x = 0; x < meshDataVo.Resolution; ++x)
+            for (var y = 0; y < meshDataVo.Resolution; ++y)
+            {
+                var linearPosition = y * meshDataVo.Resolution + x;
+
+                if (x == 0 && y == 0)
+                {
+                    verticesStates[linearPosition] = verticesStates[(y + 1) * meshDataVo.Resolution + x + 1];
+                    continue;
+                }
+
+                if (x == 0 && y == meshDataVo.Resolution - 1)
+                {
+                    verticesStates[linearPosition] = verticesStates[(y - 1) * meshDataVo.Resolution + x + 1];
+                    continue;
+                }
+
+                if (x == meshDataVo.Resolution - 1 && y == 0)
+                {
+                    verticesStates[linearPosition] = verticesStates[(y + 1) * meshDataVo.Resolution + x - 1];
+                    continue;
+                }
+
+                if (x == meshDataVo.Resolution - 1 && y == meshDataVo.Resolution - 1)
+                {
+                    verticesStates[linearPosition] = verticesStates[(y - 1) * meshDataVo.Resolution + x - 1];
+                    continue;
+                }
+
+                if (x == 0)
+                {
+                    verticesStates[linearPosition] = verticesStates[y * meshDataVo.Resolution + x + 1];
+                    continue;
+                }
+
+                if (y == 0)
+                {
+                    verticesStates[linearPosition] = verticesStates[(y + 1) * meshDataVo.Resolution + x];
+                    continue;
+                }
+
+                if (x == meshDataVo.Resolution - 1)
+                {
+                    verticesStates[linearPosition] = verticesStates[y * meshDataVo.Resolution + x - 1];
+                    continue;
+                }
+
+                if (y == meshDataVo.Resolution - 1)
+                {
+                    verticesStates[linearPosition] = verticesStates[(y - 1) * meshDataVo.Resolution + x];
+                    continue;
+                }
+            }
+
             for (var i = 0; i < meshDataVo.Resolution; ++i)
             for (var j = 0; j < meshDataVo.Resolution; ++j)
             {
